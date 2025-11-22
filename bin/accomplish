@@ -1,0 +1,477 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Get the root directory (parent of bin/)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DAILY_DIR="$ROOT_DIR/daily"
+PROJECTS_DIR="$ROOT_DIR/projects"
+REVIEWS_DIR="$ROOT_DIR/reviews"
+RECURRING_TASKS_FILE="$ROOT_DIR/recurring-tasks.md"
+
+# Helper functions
+log_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+# Get date in various formats
+get_date() {
+    date +%Y-%m-%d
+}
+
+get_yesterday() {
+    date -d "yesterday" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d 2>/dev/null
+}
+
+get_last_working_day() {
+    local day_of_week=$(date +%u)
+    if [ "$day_of_week" = "1" ]; then
+        # Monday - get Friday
+        date -d "3 days ago" +%Y-%m-%d 2>/dev/null || date -v-3d +%Y-%m-%d 2>/dev/null
+    else
+        get_yesterday
+    fi
+}
+
+get_day_name() {
+    date -d "$1" +%A 2>/dev/null || date -j -f "%Y-%m-%d" "$1" +%A 2>/dev/null
+}
+
+get_readable_date() {
+    date -d "$1" "+%A, %B %d, %Y" 2>/dev/null || date -j -f "%Y-%m-%d" "$1" "+%A, %B %d, %Y" 2>/dev/null
+}
+
+get_week_number() {
+    date +%Y-W%V
+}
+
+get_month() {
+    date +%Y-%m
+}
+
+get_day_of_week() {
+    date +%A
+}
+
+get_day_of_month() {
+    date +%d
+}
+
+# Get recurring tasks for a specific day
+get_recurring_tasks() {
+    local day_name=$(get_day_of_week)
+    local day_num=$(get_day_of_month)
+    local tasks=""
+
+    if [ ! -f "$RECURRING_TASKS_FILE" ]; then
+        return
+    fi
+
+    local in_section=""
+    local capturing=false
+
+    while IFS= read -r line; do
+        # Check for section headers
+        if [[ "$line" =~ ^##[[:space:]]+Daily\ Tasks ]]; then
+            in_section="daily"
+            capturing=true
+            continue
+        elif [[ "$line" =~ ^##[[:space:]]+${day_name}\ Tasks ]]; then
+            in_section="$day_name"
+            capturing=true
+            continue
+        elif [[ "$line" =~ ^##[[:space:]]+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\ Tasks ]] && [[ "${BASH_REMATCH[1]}" != "$day_name" ]]; then
+            capturing=false
+            continue
+        elif [[ "$line" =~ ^##[[:space:]]+Weekend\ Tasks ]] && [[ "$day_name" == "Saturday" || "$day_name" == "Sunday" ]]; then
+            in_section="weekend"
+            capturing=true
+            continue
+        elif [[ "$line" =~ ^## ]]; then
+            # Any other section header stops capturing
+            capturing=false
+            continue
+        fi
+
+        # Capture task lines if we're in an active section
+        if [ "$capturing" = true ]; then
+            # Skip empty lines and comments
+            if [[ "$line" =~ ^[[:space:]]*$ ]] || [[ "$line" =~ ^\<!-- ]]; then
+                continue
+            fi
+            # Capture checkbox tasks
+            if [[ "$line" =~ ^-[[:space:]]+\[\ \] ]]; then
+                tasks="${tasks}${line}"$'\n'
+            fi
+        fi
+    done < "$RECURRING_TASKS_FILE"
+
+    echo "$tasks"
+}
+
+# Command: new-day
+cmd_new_day() {
+    local today=$(get_date)
+    local today_file="$DAILY_DIR/$today.md"
+
+    if [ -f "$today_file" ]; then
+        log_warning "Today's file already exists: $today_file"
+        echo "Opening it for editing..."
+        ${EDITOR:-nano} "$today_file"
+        return
+    fi
+
+    local readable_date=$(get_readable_date "$today")
+    local recurring_tasks=$(get_recurring_tasks)
+
+    # Create the daily file with recurring tasks
+    cat > "$today_file" << EOF
+# Daily Tasks - $readable_date
+
+## Today's Focus
+-
+-
+
+## Tasks
+
+### Recurring
+$recurring_tasks
+### Other
+- [ ]
+
+## Notes
+-
+EOF
+
+    log_success "Created today's file: $today_file"
+
+    # Count and display recurring tasks
+    local task_count=$(echo "$recurring_tasks" | grep -c "^\- \[" || echo "0")
+    if [ "$task_count" -gt 0 ]; then
+        log_info "Added $task_count recurring task(s)"
+    fi
+
+    ${EDITOR:-nano} "$today_file"
+}
+
+# Command: add-task
+cmd_add_task() {
+    local task="$1"
+    if [ -z "$task" ]; then
+        log_error "Please provide a task description"
+        echo "Usage: accomplish add-task \"Task description\""
+        exit 1
+    fi
+
+    local today=$(get_date)
+    local today_file="$DAILY_DIR/$today.md"
+
+    if [ ! -f "$today_file" ]; then
+        log_error "Today's file doesn't exist. Run 'accomplish new-day' first."
+        exit 1
+    fi
+
+    # Add task under the ## Tasks section
+    sed -i.bak "/## Tasks/a\\
+- [ ] $task
+" "$today_file" 2>/dev/null || sed -i '' "/## Tasks/a\\
+- [ ] $task
+" "$today_file" 2>/dev/null
+
+    rm -f "$today_file.bak"
+
+    log_success "Added task: $task"
+}
+
+# Command: review-yesterday
+cmd_review_yesterday() {
+    local last_day=$(get_last_working_day)
+    local last_file="$DAILY_DIR/$last_day.md"
+
+    if [ ! -f "$last_file" ]; then
+        log_warning "No file found for $last_day"
+        return
+    fi
+
+    log_info "Reviewing $(get_readable_date "$last_day")"
+    echo ""
+    cat "$last_file"
+    echo ""
+    log_info "Press Enter to continue..."
+    read
+}
+
+# Command: review-projects
+cmd_review_projects() {
+    local today=$(get_date)
+    local projects_file="$PROJECTS_DIR/index.md"
+
+    if [ ! -f "$projects_file" ]; then
+        log_error "Projects index not found"
+        exit 1
+    fi
+
+    log_info "Checking projects due for review..."
+    echo ""
+
+    # Parse and display projects due for review
+    local found_any=false
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^##[[:space:]]+(.+)$ ]]; then
+            current_project="${BASH_REMATCH[1]}"
+            current_status=""
+            current_cadence=""
+            current_last_reviewed=""
+        elif [[ "$line" =~ ^-[[:space:]]+\*\*Review\ Cadence:\*\*[[:space:]]+(.+)$ ]]; then
+            current_cadence="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^-[[:space:]]+\*\*Last\ Reviewed:\*\*[[:space:]]+(.+)$ ]]; then
+            current_last_reviewed="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^-[[:space:]]+\*\*Status:\*\*[[:space:]]+(.+)$ ]]; then
+            current_status="${BASH_REMATCH[1]}"
+
+            # Check if project is due for review
+            if [ -n "$current_cadence" ] && [ -n "$current_last_reviewed" ]; then
+                local days_diff=$(( ( $(date -d "$today" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$today" +%s) - $(date -d "$current_last_reviewed" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$current_last_reviewed" +%s) ) / 86400 ))
+
+                local due=false
+                case "$current_cadence" in
+                    daily)
+                        [ $days_diff -ge 1 ] && due=true
+                        ;;
+                    weekly)
+                        [ $days_diff -ge 7 ] && due=true
+                        ;;
+                    monthly)
+                        [ $days_diff -ge 30 ] && due=true
+                        ;;
+                esac
+
+                if [ "$due" = true ]; then
+                    echo -e "${YELLOW}○${NC} $current_project (Last reviewed: $current_last_reviewed, Cadence: $current_cadence)"
+                    found_any=true
+                fi
+            fi
+        fi
+    done < "$projects_file"
+
+    if [ "$found_any" = false ]; then
+        log_success "All projects are up to date!"
+    fi
+
+    echo ""
+    log_info "Press Enter to open projects index..."
+    read
+    ${EDITOR:-nano} "$projects_file"
+}
+
+# Command: weekly-summary
+cmd_weekly_summary() {
+    local week=$(get_week_number)
+    local summary_file="$REVIEWS_DIR/weekly/$week.md"
+
+    if [ -f "$summary_file" ]; then
+        log_warning "Weekly summary already exists: $summary_file"
+        ${EDITOR:-nano} "$summary_file"
+        return
+    fi
+
+    mkdir -p "$REVIEWS_DIR/weekly"
+
+    cat > "$summary_file" << EOF
+# Weekly Summary - $week
+
+## Accomplishments
+-
+
+## Challenges
+-
+
+## Key Learnings
+-
+
+## Next Week's Focus
+-
+
+## Projects Updated
+-
+
+## Notes
+-
+EOF
+
+    log_success "Created weekly summary: $summary_file"
+    ${EDITOR:-nano} "$summary_file"
+}
+
+# Command: monthly-summary
+cmd_monthly_summary() {
+    local month=$(get_month)
+    local summary_file="$REVIEWS_DIR/monthly/$month.md"
+
+    if [ -f "$summary_file" ]; then
+        log_warning "Monthly summary already exists: $summary_file"
+        ${EDITOR:-nano} "$summary_file"
+        return
+    fi
+
+    mkdir -p "$REVIEWS_DIR/monthly"
+
+    local month_name=$(date +%B)
+    local year=$(date +%Y)
+
+    cat > "$summary_file" << EOF
+# Monthly Summary - $month_name $year
+
+## Major Accomplishments
+-
+
+## Projects Completed
+-
+
+## Projects In Progress
+-
+
+## Challenges & Blockers
+-
+
+## Key Learnings
+-
+
+## Metrics
+- Days worked:
+- Projects active:
+- Key deliverables:
+
+## Next Month's Goals
+-
+
+## Notes
+-
+EOF
+
+    log_success "Created monthly summary: $summary_file"
+    ${EDITOR:-nano} "$summary_file"
+}
+
+# Command: list-days
+cmd_list_days() {
+    local days="${1:-7}"
+    log_info "Last $days daily files:"
+    echo ""
+
+    ls -1t "$DAILY_DIR"/*.md 2>/dev/null | head -n "$days" | while read file; do
+        local basename=$(basename "$file" .md)
+        local day_name=$(get_day_name "$basename")
+        echo "  $basename ($day_name)"
+    done
+}
+
+# Command: open-project
+cmd_open_project() {
+    local project="$1"
+
+    if [ -z "$project" ]; then
+        log_error "Please provide a project name"
+        echo "Usage: accomplish open-project <project-name>"
+        exit 1
+    fi
+
+    local project_dir="$PROJECTS_DIR/$project"
+    local notes_file="$project_dir/notes.md"
+
+    if [ ! -d "$project_dir" ]; then
+        log_warning "Project directory doesn't exist: $project_dir"
+        echo "Creating it now..."
+        mkdir -p "$project_dir"
+    fi
+
+    if [ ! -f "$notes_file" ]; then
+        cat > "$notes_file" << EOF
+# $project Notes
+
+## Overview
+
+
+## Meeting Notes
+
+
+## Research & Links
+
+
+## Technical Details
+
+
+## Progress Log
+
+### Week of $(get_date)
+-
+EOF
+        log_success "Created notes file: $notes_file"
+    fi
+
+    ${EDITOR:-nano} "$notes_file"
+}
+
+# Main command dispatcher
+case "${1:-}" in
+    new-day)
+        cmd_new_day
+        ;;
+    add-task)
+        cmd_add_task "$2"
+        ;;
+    review-yesterday)
+        cmd_review_yesterday
+        ;;
+    review-projects)
+        cmd_review_projects
+        ;;
+    weekly-summary)
+        cmd_weekly_summary
+        ;;
+    monthly-summary)
+        cmd_monthly_summary
+        ;;
+    list-days)
+        cmd_list_days "$2"
+        ;;
+    open-project)
+        cmd_open_project "$2"
+        ;;
+    *)
+        echo "Personal Accomplishment Tool"
+        echo ""
+        echo "Usage: accomplish <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  new-day              Create today's daily file"
+        echo "  add-task <task>      Add a task to today's list"
+        echo "  review-yesterday     Review the previous working day"
+        echo "  review-projects      Review projects due for review"
+        echo "  weekly-summary       Create/open weekly summary"
+        echo "  monthly-summary      Create/open monthly summary"
+        echo "  list-days [n]        List last n daily files (default: 7)"
+        echo "  open-project <name>  Open/create project notes"
+        echo ""
+        exit 1
+        ;;
+esac

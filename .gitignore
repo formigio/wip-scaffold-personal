@@ -1,0 +1,26 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+
+# SQLite databases (if added in future)
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+.tmp/
+
+# Personal/sensitive notes (uncomment if needed)
+# daily/private-*.md
+# projects/*/private-*.md
