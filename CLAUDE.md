@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is a personal accomplishment tracking system for managing daily tasks, projects, and team status reports. It uses markdown files with git version control for simplicity and portability.
+This is a personal Formigio WIP system for managing daily tasks, projects, and team status reports. It uses markdown files with git version control for simplicity and portability.
 
 ## Core Architecture
 
@@ -12,7 +12,7 @@ This is a personal accomplishment tracking system for managing daily tasks, proj
 
 - **`daily/`** - Daily task files named `YYYY-MM-DD.md` with standardized format
 - **`projects/`** - Project tracking with `index.md` master list and individual project folders with `notes.md`
-- **`embedded/`** - Embedded git repositories for collaborative projects
+- **`shared/`** - Shared WIPs for collaborative projects
 - **`team/`** - Team management files:
   - `daily-logs/` - Team daily logs (e.g., `january.md`)
   - `status-reports/` - Leadership and management status reports
@@ -77,21 +77,21 @@ The `bin/accomplish` bash script provides commands:
 
 ```bash
 # Personal tracking
-./bin/accomplish new-day              # Create today's daily file with recurring tasks
-./bin/accomplish add-task "Task"      # Add task to today's file
-./bin/accomplish review-yesterday     # Display previous working day's file
-./bin/accomplish review-projects      # Check which projects are due for review
-./bin/accomplish weekly-summary       # Create weekly review file
-./bin/accomplish monthly-summary      # Create monthly review file
-./bin/accomplish list-days [n]        # List last n daily files
-./bin/accomplish open-project <name>  # Open/create project notes
+./bin/wip new-day              # Create today's daily file with recurring tasks
+./bin/wip add-task "Task"      # Add task to today's file
+./bin/wip review-yesterday     # Display previous working day's file
+./bin/wip review-projects      # Check which projects are due for review
+./bin/wip weekly-summary       # Create weekly review file
+./bin/wip monthly-summary      # Create monthly review file
+./bin/wip list-days [n]        # List last n daily files
+./bin/wip open-project <name>  # Open/create project notes
 
 # Collaborative projects (embedded repos)
-./bin/accomplish clone-project <url> <name>    # Clone shared project repo
-./bin/accomplish log-project <name>            # Log today's work (auto-commits)
-./bin/accomplish sync-project <name>           # Pull teammate updates
-./bin/accomplish team-status <name> [days]     # Show team activity
-./bin/accomplish list-embedded-projects        # List all embedded projects
+./bin/wip clone-project <url> <name>    # Clone shared project repo
+./bin/wip log-project <name>            # Log today's work (auto-commits)
+./bin/wip sync-project <name>           # Pull teammate updates
+./bin/wip team-status <name> [days]     # Show team activity
+./bin/wip list-embedded-projects        # List all shared WIPs
 ```
 
 ## Claude Code Agents
@@ -139,9 +139,9 @@ The system supports collaborative projects where multiple people work together a
 
 #### Structure
 
-Collaborative projects live in `embedded/<project-name>/` with their own git repository:
+Collaborative projects live in `shared/<project-name>/` with their own git repository:
 ```
-embedded/
+shared/
 ├── <project-name>/
 │   ├── .git/                    # Separate git history
 │   ├── .me                      # Local identity file (gitignored)
@@ -182,20 +182,20 @@ Each team member's daily log uses a simplified format focused on project work:
 #### Collaborative Workflow
 
 **Morning:**
-1. Sync project: `./bin/accomplish sync-project <name>`
-2. Check team activity: `./bin/accomplish team-status <name>`
+1. Sync project: `./bin/wip sync-project <name>`
+2. Check team activity: `./bin/wip team-status <name>`
 
 **During Day:**
 3. Work on project files
 4. Update shared docs (notes.md, decisions.md)
 
 **End of Day:**
-5. Log work: `./bin/accomplish log-project <name>` (auto-commits and pushes)
+5. Log work: `./bin/wip log-project <name>` (auto-commits and pushes)
 
 #### Pointer Projects
 
 Embedded projects are referenced in personal `projects/index.md` with:
-- **Type:** Collaborative (embedded)
+- **Type:** Team WIP
 - **Team Members:** List of collaborators
 - **Location:** Path to embedded repo
 - **Remote:** Git URL
@@ -262,4 +262,4 @@ When helping the user:
 6. **Use ISO date format** (YYYY-MM-DD) everywhere
 7. **Preserve the prioritized task order** format when adding to daily files
 8. **Mark tasks completed** with `[x]` when user confirms completion
-9. **For embedded projects**: Use simplified daily log format, sync before planning, reference team activity
+9. **For shared WIPs**: Use simplified daily log format, sync before planning, reference team activity

@@ -1,6 +1,6 @@
 # Setup Guide for Peter
 
-Welcome! This guide will get you set up with the personal accomplishment tracking system and ready to collaborate on the MBA Field Guide book project.
+Welcome! This guide will get you set up with the personal Formigio WIP system and ready to collaborate on the MBA Field Guide book project.
 
 ## What You're Getting
 
@@ -55,7 +55,7 @@ Example tasks you might add:
 #### B. Create your first daily file
 
 ```bash
-./bin/accomplish new-day
+./bin/wip new-day
 ```
 
 This creates a file like `daily/2025-11-28.md` with:
@@ -72,13 +72,13 @@ You can edit `projects/index.md` to track your personal projects, but we'll focu
 Now let's get you connected to our book project:
 
 ```bash
-./bin/accomplish clone-project <mba-field-guide-url> mba-field-guide
+./bin/wip clone-project <mba-field-guide-url> mba-field-guide
 ```
 
 When prompted for your username, enter: **peter**
 
 This will:
-- Clone the book project into `embedded/mba-field-guide/`
+- Clone the book project into `shared/mba-field-guide/`
 - Set your identity as "peter"
 - Create your daily log directory
 - Add the project to your projects index
@@ -87,12 +87,12 @@ This will:
 
 **See what I've been working on:**
 ```bash
-./bin/accomplish team-status mba-field-guide
+./bin/wip team-status mba-field-guide
 ```
 
 **Create your first daily log:**
 ```bash
-./bin/accomplish log-project mba-field-guide
+./bin/wip log-project mba-field-guide
 ```
 
 This will open an editor with a template. Fill it in with something like:
@@ -101,7 +101,7 @@ This will open an editor with a template. Fill it in with something like:
 # 2025-11-28 - Peter
 
 ## Completed
-- [x] Set up personal accomplishment tracking system
+- [x] Set up personal Formigio WIP system
 - [x] Cloned MBA Field Guide project
 - [x] Reviewed project outline
 
@@ -125,7 +125,7 @@ When you save and exit, it will automatically commit and push to our shared repo
 
 **Each Morning:**
 ```bash
-./bin/accomplish new-day
+./bin/wip new-day
 ```
 This creates today's file with your recurring tasks.
 
@@ -145,8 +145,8 @@ git push
 **Morning (when working on the book):**
 ```bash
 # See what I did yesterday
-./bin/accomplish sync-project mba-field-guide
-./bin/accomplish team-status mba-field-guide
+./bin/wip sync-project mba-field-guide
+./bin/wip team-status mba-field-guide
 ```
 
 **During the Day:**
@@ -156,7 +156,7 @@ git push
 **End of Day:**
 ```bash
 # Log your accomplishments
-./bin/accomplish log-project mba-field-guide
+./bin/wip log-project mba-field-guide
 ```
 
 This automatically commits and pushes your daily log!
@@ -165,18 +165,18 @@ This automatically commits and pushes your daily log!
 
 ### Personal Commands
 ```bash
-./bin/accomplish new-day                # Create today's file
-./bin/accomplish review-yesterday       # See yesterday
-./bin/accomplish review-projects        # Check project reviews
-./bin/accomplish list-days 7            # List last 7 days
+./bin/wip new-day                # Create today's file
+./bin/wip review-yesterday       # See yesterday
+./bin/wip review-projects        # Check project reviews
+./bin/wip list-days 7            # List last 7 days
 ```
 
 ### Collaborative Project Commands
 ```bash
-./bin/accomplish sync-project mba-field-guide       # Pull my updates
-./bin/accomplish log-project mba-field-guide        # Log your work
-./bin/accomplish team-status mba-field-guide        # See activity
-./bin/accomplish list-embedded-projects             # List all projects
+./bin/wip sync-project mba-field-guide       # Pull my updates
+./bin/wip log-project mba-field-guide        # Log your work
+./bin/wip team-status mba-field-guide        # See activity
+./bin/wip list-embedded-projects             # List all projects
 ```
 
 ## Understanding the Structure
@@ -187,15 +187,15 @@ This automatically commits and pushes your daily log!
 - **`recurring-tasks.md`** - Your recurring tasks
 
 ### Our Shared Book Project
-- **`embedded/mba-field-guide/`** - Shared repo (separate git)
-- **`embedded/mba-field-guide/daily/peter/`** - Your book project logs
-- **`embedded/mba-field-guide/daily/geoff/`** - My book project logs
-- **`embedded/mba-field-guide/outline.md`** - Book structure
-- **`embedded/mba-field-guide/notes.md`** - Shared research and ideas
+- **`shared/mba-field-guide/`** - Shared repo (separate git)
+- **`shared/mba-field-guide/daily/peter/`** - Your book project logs
+- **`shared/mba-field-guide/daily/geoff/`** - My book project logs
+- **`shared/mba-field-guide/outline.md`** - Book structure
+- **`shared/mba-field-guide/notes.md`** - Shared research and ideas
 
 The beauty of this system:
 - Your personal productivity is **yours** (private repo)
-- Our book project is **shared** (separate git repo in embedded/)
+- Our book project is **shared** (separate git repo in shared/)
 - We can see each other's daily progress on the book
 - We work on our own schedules (async collaboration)
 
@@ -204,9 +204,9 @@ The beauty of this system:
 1. **✅ Complete setup above** (clone, configure, test)
 
 2. **Read the book project docs:**
-   - `embedded/mba-field-guide/QUICK-START.md` - Quick start for the book
-   - `embedded/mba-field-guide/COLLABORATION-GUIDE.md` - Detailed workflow
-   - `embedded/mba-field-guide/outline.md` - Book structure
+   - `shared/mba-field-guide/QUICK-START.md` - Quick start for the book
+   - `shared/mba-field-guide/COLLABORATION-GUIDE.md` - Detailed workflow
+   - `shared/mba-field-guide/outline.md` - Book structure
 
 3. **Add your thoughts:**
    Create your first daily log for the book project with:
@@ -228,7 +228,7 @@ The beauty of this system:
 ## Getting Help
 
 - **System questions:** Check `README.md` in the root directory
-- **Book project questions:** Check the guides in `embedded/mba-field-guide/`
+- **Book project questions:** Check the guides in `shared/mba-field-guide/`
 - **General questions:** Just add them to your daily log notes!
 
 ## Optional: Use Claude Code
@@ -261,13 +261,13 @@ chmod +x bin/accomplish
 **Can't push to book project:**
 You might need to pull first:
 ```bash
-./bin/accomplish sync-project mba-field-guide
+./bin/wip sync-project mba-field-guide
 ```
 
 **Identity errors:**
 Make sure `.me` file exists and contains "peter":
 ```bash
-cd embedded/mba-field-guide
+cd shared/mba-field-guide
 cat .me  # Should show: peter
 ```
 
@@ -278,13 +278,13 @@ cat .me  # Should show: peter
 The system is ready. Your workflow is:
 
 **Daily Personal:**
-1. `./bin/accomplish new-day` (morning)
+1. `./bin/wip new-day` (morning)
 2. Work on tasks
 3. Commit at end of day
 
 **When Working on Book:**
-1. `./bin/accomplish sync-project mba-field-guide` (morning)
+1. `./bin/wip sync-project mba-field-guide` (morning)
 2. Work on book
-3. `./bin/accomplish log-project mba-field-guide` (end of day)
+3. `./bin/wip log-project mba-field-guide` (end of day)
 
 Let's write something great! 📚

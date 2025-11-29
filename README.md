@@ -1,4 +1,4 @@
-# Personal Accomplishment Tracker
+# Formigio WIP - Work In Progress
 
 A simple, markdown-based system for tracking daily tasks, managing projects, and creating status reports. Everything is stored in plain text markdown files with git version control for simplicity and portability.
 
@@ -42,7 +42,7 @@ Edit `recurring-tasks.md` to define your regular tasks:
 ### 3. Create Your First Daily File
 
 ```bash
-./bin/accomplish new-day
+./bin/wip new-day
 ```
 
 This creates a daily file for today (e.g., `daily/2025-01-15.md`) with:
@@ -76,9 +76,9 @@ Example:
 ```
 .
 ├── bin/
-│   └── accomplish           # CLI tool for common operations
+│   └── wip           # CLI tool for common operations
 ├── daily/                   # Daily task files (YYYY-MM-DD.md)
-├── embedded/                # Collaborative project repos (separate git histories)
+├── shared/                # Collaborative project repos (separate git histories)
 ├── projects/
 │   ├── index.md            # Master project list
 │   └── [project-name]/     # Individual project folders
@@ -100,12 +100,12 @@ Example:
 ### Morning
 1. **Review yesterday** (manually or with Claude Code):
    ```bash
-   ./bin/accomplish review-yesterday
+   ./bin/wip review-yesterday
    ```
 
 2. **Check projects due for review**:
    ```bash
-   ./bin/accomplish review-projects
+   ./bin/wip review-projects
    ```
 
 3. **Plan your day** - Use Claude Code agents for help:
@@ -146,35 +146,35 @@ Example:
 
 ```bash
 # Create today's daily file with recurring tasks
-./bin/accomplish new-day
+./bin/wip new-day
 
 # Add a task to today's file
-./bin/accomplish add-task "Task description"
+./bin/wip add-task "Task description"
 
 # Review yesterday's file
-./bin/accomplish review-yesterday
+./bin/wip review-yesterday
 
 # Check which projects are due for review
-./bin/accomplish review-projects
+./bin/wip review-projects
 
 # Create weekly review
-./bin/accomplish weekly-summary
+./bin/wip weekly-summary
 
 # Create monthly review
-./bin/accomplish monthly-summary
+./bin/wip monthly-summary
 
 # List recent daily files
-./bin/accomplish list-days [n]
+./bin/wip list-days [n]
 
 # Open/create project notes
-./bin/accomplish open-project <project-name>
+./bin/wip open-project <project-name>
 
 # Collaborative Projects
-./bin/accomplish clone-project <url> <name>    # Clone shared project
-./bin/accomplish log-project <name>            # Log work (auto-commits)
-./bin/accomplish sync-project <name>           # Pull teammate updates
-./bin/accomplish team-status <name> [days]     # Show team activity
-./bin/accomplish list-embedded-projects        # List all embedded projects
+./bin/wip clone-project <url> <name>    # Clone shared project
+./bin/wip log-project <name>            # Log work (auto-commits)
+./bin/wip sync-project <name>           # Pull teammate updates
+./bin/wip team-status <name> [days]     # Show team activity
+./bin/wip list-embedded-projects        # List all shared WIPs
 ```
 
 ## Collaborative Projects
@@ -185,13 +185,13 @@ Work on shared projects with teammates using embedded git repositories. Each emb
 
 1. **Clone an existing collaborative project:**
    ```bash
-   ./bin/accomplish clone-project git@github.com:team/project.git project-name
+   ./bin/wip clone-project git@github.com:team/project.git project-name
    ```
    This will prompt you for your username and set up your identity.
 
 2. **Or manually set up:**
    ```bash
-   cd embedded/project-name
+   cd shared/project-name
    echo "your-username" > .me
    mkdir -p daily/your-username
    ```
@@ -201,14 +201,14 @@ Work on shared projects with teammates using embedded git repositories. Each emb
 **Morning:**
 ```bash
 # See what teammates did
-./bin/accomplish sync-project project-name
-./bin/accomplish team-status project-name
+./bin/wip sync-project project-name
+./bin/wip team-status project-name
 ```
 
 **End of Day:**
 ```bash
 # Log your work (auto-commits and pushes)
-./bin/accomplish log-project project-name
+./bin/wip log-project project-name
 ```
 
 ### Embedded Project Structure
@@ -363,4 +363,4 @@ If you have ideas for improvements to the template itself, feel free to submit i
 
 ---
 
-**Get started:** Run `./bin/accomplish new-day` and start tracking!
+**Get started:** Run `./bin/wip new-day` and start tracking!
