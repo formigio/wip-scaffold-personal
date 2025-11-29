@@ -60,20 +60,6 @@ fi
 # Make sure wip script is executable
 chmod +x "$SCAFFOLD_ROOT/bin/wip"
 
-# Create .me file if it doesn't exist
-if [ ! -f "$SCAFFOLD_ROOT/.me" ]; then
-    echo "📝 Creating identity file (.me)"
-    echo ""
-    echo "This file tells the system who you are (it's gitignored)."
-    read -p "Enter your username (e.g., 'geoff', 'peter'): " username
-
-    if [ -n "$username" ]; then
-        echo "$username" > "$SCAFFOLD_ROOT/.me"
-        echo "✅ Created .me with username: $username"
-        echo ""
-    fi
-fi
-
 echo "🎉 Setup complete!"
 echo ""
 echo "Your Personal WIP is ready to use!"
@@ -82,6 +68,9 @@ echo "Next steps:"
 echo "1. Customize your recurring-tasks.md"
 echo "2. Start your first day with: ./bin/wip new-day"
 echo "3. Or ask Claude Code to help you plan your day"
+echo ""
+echo "Note: The .me identity file will be created automatically when you"
+echo "      work with shared Team WIPs (it's gitignored)."
 echo ""
 echo "The scaffold remains connected to the upstream repo, so you can:"
 echo "- Pull updates: git pull origin main"
