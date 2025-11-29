@@ -28,12 +28,16 @@ Open Claude Code and say:
 > "Clone the Formigio WIP scaffold from https://github.com/formigio/wip-scaffold-personal into ~/my-wip and run the setup script"
 
 Claude will:
-1. Clone the repository
+1. Clone the repository (keeping it connected to scaffold for updates)
 2. Run `bin/setup` which:
-   - Removes the scaffold's git history
-   - Initializes a fresh git repository for your personal use
+   - Creates your identity file (.me)
    - Makes CLI tools executable
+   - Explains how to pull updates and contribute improvements
 3. Show you the structure
+
+**Note:** The scaffold remains connected to the upstream repo, allowing you to:
+- Pull updates when improvements are made
+- Contribute your own improvements back via pull requests
 
 ### Step 2: Customize Recurring Tasks
 

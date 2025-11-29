@@ -1,65 +1,90 @@
 #!/bin/bash
 
 # Formigio WIP - First Time Setup Script
-# This script initializes your personal WIP by removing the scaffold's git history
-# and creating a fresh repository for your own work.
+# This script sets up the wip-scaffold-personal as a shared WIP within your main WIP,
+# allowing you to contribute improvements back to the scaffold while maintaining
+# your own personal WIP workspace.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WIP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCAFFOLD_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCAFFOLD_NAME="$(basename "$SCAFFOLD_ROOT")"
 
 echo "🚀 Formigio WIP - First Time Setup"
 echo ""
+echo "This script will set up your Personal WIP workspace."
+echo ""
 
-# Check if this looks like it still has scaffold git history
-if [ -d "$WIP_ROOT/.git" ]; then
-    # Check if remote is the scaffold repo
-    REMOTE_URL=$(git -C "$WIP_ROOT" remote get-url origin 2>/dev/null || echo "")
+# Detect if we're in a shared/ directory structure (already part of main WIP)
+if [[ "$SCAFFOLD_ROOT" == */shared/* ]]; then
+    echo "✅ Detected shared WIP structure"
+    echo "   Location: $SCAFFOLD_ROOT"
+    echo ""
+    echo "The scaffold is already set up as a shared WIP."
+    echo "You can contribute improvements back to the scaffold repo!"
+    echo ""
+else
+    echo "📦 Setting up standalone Personal WIP"
+    echo "   Location: $SCAFFOLD_ROOT"
+    echo ""
 
-    if [[ "$REMOTE_URL" == *"wip-scaffold-personal"* ]]; then
-        echo "📦 Detected scaffold git history. Resetting for your personal use..."
-        echo ""
+    # Check if git is already initialized
+    if [ -d "$SCAFFOLD_ROOT/.git" ]; then
+        REMOTE_URL=$(git -C "$SCAFFOLD_ROOT" remote get-url origin 2>/dev/null || echo "")
 
-        # Remove the scaffold's git history
-        rm -rf "$WIP_ROOT/.git"
-
-        # Initialize fresh git repository
-        git -C "$WIP_ROOT" init
-        git -C "$WIP_ROOT" add .
-        git -C "$WIP_ROOT" commit -m "Initial commit: Personal WIP setup"
-
-        echo "✅ Git repository reset successfully!"
-        echo ""
-        echo "Your WIP now has a fresh git history."
-        echo "You can add your own remote with:"
-        echo "  git remote add origin <your-repo-url>"
-        echo ""
+        if [[ "$REMOTE_URL" == *"wip-scaffold-personal"* ]]; then
+            echo "✅ Git already configured with scaffold remote"
+            echo "   You can pull updates and contribute improvements!"
+            echo ""
+        else
+            echo "✅ Git already initialized with custom remote"
+            echo ""
+        fi
     else
-        echo "✅ Git repository already initialized (not scaffold)"
+        echo "📦 Initializing git repository..."
+        git -C "$SCAFFOLD_ROOT" init
+        git -C "$SCAFFOLD_ROOT" add .
+        git -C "$SCAFFOLD_ROOT" commit -m "Initial commit: Personal WIP setup"
+
+        echo "✅ Git repository initialized!"
+        echo ""
+        echo "To connect to the scaffold for updates and contributions:"
+        echo "  git remote add origin https://github.com/formigio/wip-scaffold-personal.git"
+        echo "  git branch -M main"
+        echo "  git fetch origin"
         echo ""
     fi
-else
-    echo "📦 No git repository found. Initializing..."
-    echo ""
-
-    # Initialize fresh git repository
-    git -C "$WIP_ROOT" init
-    git -C "$WIP_ROOT" add .
-    git -C "$WIP_ROOT" commit -m "Initial commit: Personal WIP setup"
-
-    echo "✅ Git repository initialized!"
-    echo ""
 fi
 
 # Make sure wip script is executable
-chmod +x "$WIP_ROOT/bin/wip"
+chmod +x "$SCAFFOLD_ROOT/bin/wip"
+
+# Create .me file if it doesn't exist
+if [ ! -f "$SCAFFOLD_ROOT/.me" ]; then
+    echo "📝 Creating identity file (.me)"
+    echo ""
+    echo "This file tells the system who you are (it's gitignored)."
+    read -p "Enter your username (e.g., 'geoff', 'peter'): " username
+
+    if [ -n "$username" ]; then
+        echo "$username" > "$SCAFFOLD_ROOT/.me"
+        echo "✅ Created .me with username: $username"
+        echo ""
+    fi
+fi
 
 echo "🎉 Setup complete!"
+echo ""
+echo "Your Personal WIP is ready to use!"
 echo ""
 echo "Next steps:"
 echo "1. Customize your recurring-tasks.md"
 echo "2. Start your first day with: ./bin/wip new-day"
 echo "3. Or ask Claude Code to help you plan your day"
+echo ""
+echo "The scaffold remains connected to the upstream repo, so you can:"
+echo "- Pull updates: git pull origin main"
+echo "- Contribute improvements: Make changes, commit, and create a PR"
 echo ""
 echo "For help, see README.md or ask Claude Code!"
