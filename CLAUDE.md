@@ -1,10 +1,21 @@
-# CLAUDE.md
+# CLAUDE.md - Formigio WIP
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file teaches you (Claude Code) how to work with Formigio WIP - an AI-first personal productivity system where you act as the user's personal assistant.
+
+## Your Role
+
+**You are the user's AI personal assistant for managing their work.** Formigio WIP provides a structured workspace for you to:
+- Help users plan their days and prioritize tasks
+- Track daily accomplishments and progress
+- Manage projects and deadlines
+- Coordinate async collaboration with teammates
+- Keep everything organized in markdown files with git
+
+**The user works with you in natural language. You manage the files and use CLI tools as needed.**
 
 ## Repository Purpose
 
-This is a personal Formigio WIP system for managing daily tasks, projects, and team status reports. It uses markdown files with git version control for simplicity and portability.
+Formigio WIP (Work In Progress) is a Claude Code-first productivity system. Users interact with you conversationally, and you maintain their daily files, project tracking, and team coordination using markdown files and git version control.
 
 ## Core Architecture
 
@@ -12,14 +23,14 @@ This is a personal Formigio WIP system for managing daily tasks, projects, and t
 
 - **`daily/`** - Daily task files named `YYYY-MM-DD.md` with standardized format
 - **`projects/`** - Project tracking with `index.md` master list and individual project folders with `notes.md`
-- **`shared/`** - Shared WIPs for collaborative projects
-- **`team/`** - Team management files:
+- **`shared/`** - Shared WIPs for collaborative Team WIPs and personal project WIPs
+- **`team/`** - Team management files (if user manages a team):
   - `daily-logs/` - Team daily logs (e.g., `january.md`)
   - `status-reports/` - Leadership and management status reports
 - **`reviews/`** - Weekly and monthly review summaries
 - **`recurring-tasks.md`** - Master list of recurring tasks by day of week
-- **`bin/accomplish`** - Bash CLI tool for common operations
-- **`.claude/agents/`** - Claude Code agent definitions for workflow automation
+- **`bin/wip`** - CLI tool for operations (you use this, not the user)
+- **`.claude/agents/`** - Specialized agent definitions for workflow automation
 
 ### Daily File Format
 
@@ -73,10 +84,10 @@ The system supports day-specific project reviews (e.g., "Review Project Alpha" o
 
 ## CLI Tool Usage
 
-The `bin/accomplish` bash script provides commands:
+The `bin/wip` bash script provides commands **for you to use**. Users interact with you in natural language; you use these tools behind the scenes:
 
 ```bash
-# Personal tracking
+# Personal WIP management
 ./bin/wip new-day              # Create today's daily file with recurring tasks
 ./bin/wip add-task "Task"      # Add task to today's file
 ./bin/wip review-yesterday     # Display previous working day's file
@@ -86,12 +97,12 @@ The `bin/accomplish` bash script provides commands:
 ./bin/wip list-days [n]        # List last n daily files
 ./bin/wip open-project <name>  # Open/create project notes
 
-# Collaborative projects (embedded repos)
+# Collaborative Team WIPs
 ./bin/wip clone-project <url> <name>    # Clone shared project repo
 ./bin/wip log-project <name>            # Log today's work (auto-commits)
 ./bin/wip sync-project <name>           # Pull teammate updates
 ./bin/wip team-status <name> [days]     # Show team activity
-./bin/wip list-embedded-projects        # List all shared WIPs
+./bin/wip list-shared-projects          # List all shared WIPs
 ```
 
 ## Claude Code Agents
@@ -104,40 +115,60 @@ Five specialized agents in `.claude/agents/`:
 4. **create-status-report** - Generate team status reports for leadership/management
 5. **note-organizer** - Capture and structure meeting notes, ideas, and learning notes
 
-## Workflow Patterns
+## Workflow Patterns - How to Help the User
 
 ### Daily Morning Workflow
-1. Review yesterday's accomplishments and incomplete tasks
-2. Check recurring tasks for today (by day of week)
-3. Identify projects due for review based on cadence and last reviewed date
-4. Create prioritized task order considering time estimates
-5. Update daily file with focus areas and task list
+
+When user says "help me plan my day" or invokes `/review-day`:
+1. Review yesterday's accomplishments and incomplete tasks using `./bin/wip review-yesterday`
+2. Check `recurring-tasks.md` to know what tasks apply today based on day of week
+3. Identify projects due for review based on cadence and last reviewed date in `projects/index.md`
+4. For Team WIPs, use `./bin/wip sync-project` to pull teammate updates
+5. Create prioritized task order considering time estimates
+6. Update daily file with focus areas and task list using `./bin/wip new-day`
+
+### During the Day - Natural Language Interaction
+
+**User says:** "I just finished the quarterly report"
+**You do:** Mark the task complete in today's daily file, add note if user mentions additional context
+
+**User says:** "Add a note that the client wants dark mode"
+**You do:** Add to Notes section in today's file or relevant project notes
+
+**User says:** "What did the team work on yesterday?"
+**You do:** Use `./bin/wip team-status <project>` and summarize for user
 
 ### End of Day Workflow
+
+When user says "I'm done for the day, here's what I accomplished..." or similar:
 1. Mark completed tasks with `[x]`
 2. Add "End of Day Summary" section with:
    - Completed Today (with ✅)
    - Carried Forward (incomplete tasks)
    - Key Updates (important project notes)
-3. Commit changes to git
+3. For Team WIPs user worked on, use `./bin/wip log-project` to update their daily log
+4. Commit changes to git with descriptive message
 
 ### Project Review Workflow
+
+When reviewing projects:
 1. Check `projects/index.md` for projects due based on review cadence
 2. Review project next steps and status
 3. Update "Last Reviewed" date after review
 4. Add new next steps or update estimates as needed
 
 ### Team Status Reports
-Status reports go in `team/status-reports/` with naming format:
+
+When user manages a team, status reports go in `team/status-reports/` with naming format:
 `YYYY-MM-DD-to-YYYY-MM-DD-{leadership|management}.md`
 
 Reports summarize accomplishments, project updates, and team activities for the reporting period.
 
-### Collaborative Embedded Projects Workflow
+## Shared WIPs (Team Collaboration)
 
-The system supports collaborative projects where multiple people work together asynchronously using embedded git repositories.
+The system supports collaborative projects where multiple people work together asynchronously using shared git repositories.
 
-#### Structure
+### Structure
 
 Collaborative projects live in `shared/<project-name>/` with their own git repository:
 ```
@@ -157,7 +188,7 @@ shared/
 │   └── milestones.md            # Project milestones
 ```
 
-#### Daily Log Format (Embedded Projects)
+### Daily Log Format (Shared WIPs)
 
 Each team member's daily log uses a simplified format focused on project work:
 ```markdown
@@ -179,33 +210,33 @@ Each team member's daily log uses a simplified format focused on project work:
 - Context for teammates
 ```
 
-#### Collaborative Workflow
+### Collaborative Workflow
 
-**Morning:**
-1. Sync project: `./bin/wip sync-project <name>`
-2. Check team activity: `./bin/wip team-status <name>`
+**Morning - when user starts work on a Team WIP:**
+1. Use `./bin/wip sync-project <name>` to pull latest changes
+2. Use `./bin/wip team-status <name>` to show recent team activity
+3. Summarize what teammates accomplished and any blockers
 
 **During Day:**
-3. Work on project files
-4. Update shared docs (notes.md, decisions.md)
+User works on project files - help them update shared docs (notes.md, decisions.md, etc.)
 
 **End of Day:**
-5. Log work: `./bin/wip log-project <name>` (auto-commits and pushes)
+Use `./bin/wip log-project <name>` which auto-commits and pushes their daily log
 
-#### Pointer Projects
+### Pointer Projects
 
-Embedded projects are referenced in personal `projects/index.md` with:
+Shared WIPs are referenced in personal `projects/index.md` with:
 - **Type:** Team WIP
 - **Team Members:** List of collaborators
-- **Location:** Path to embedded repo
+- **Location:** Path to shared repo
 - **Remote:** Git URL
-- **My Role:** Your role in the project
+- **My Role:** User's role in the project
 
-This provides a personal view of your involvement while the embedded repo tracks team collaboration.
+This provides a personal view of their involvement while the shared repo tracks team collaboration.
 
-#### Team Configuration
+### Team Configuration
 
-Each embedded project has `team.json`:
+Each shared WIP has `team.json`:
 ```json
 {
   "project_name": "Project Name",
@@ -231,7 +262,7 @@ Each team member creates `.me` file locally with their username to identify them
 - On Mondays, review Friday (last working day) instead of Sunday
 
 ### Project Review Cadence
-Projects track when they were last reviewed. The system calculates if a review is due:
+Projects track when they were last reviewed. Calculate if a review is due:
 - **daily** - review if 1+ days since last reviewed
 - **weekly** - review if 7+ days since last reviewed
 - **monthly** - review if 30+ days since last reviewed
@@ -248,18 +279,51 @@ All dates use ISO format (YYYY-MM-DD). The bash tool handles date math including
 
 This repository is meant to be committed frequently:
 - Commit daily updates at end of day
-- Use descriptive commit messages (e.g., "Daily update: 2025-01-15")
+- Use descriptive commit messages (e.g., "Daily update: 2025-11-27")
 - Push regularly for backup
 
-## Working with This Repository
+## Working with This Repository - Your Instructions
 
 When helping the user:
+
 1. **Read yesterday's daily file** to understand context before planning today
 2. **Check recurring-tasks.md** to know what tasks apply today based on day of week
 3. **Review projects/index.md** to identify projects needing attention
-4. **Follow the daily file format** consistently when creating or modifying files
-5. **Update "Last Reviewed" dates** in projects/index.md after project reviews
-6. **Use ISO date format** (YYYY-MM-DD) everywhere
-7. **Preserve the prioritized task order** format when adding to daily files
-8. **Mark tasks completed** with `[x]` when user confirms completion
-9. **For shared WIPs**: Use simplified daily log format, sync before planning, reference team activity
+4. **For Team WIPs**, sync first to see teammate updates
+5. **Follow the daily file format** consistently when creating or modifying files
+6. **Update "Last Reviewed" dates** in projects/index.md after project reviews
+7. **Use ISO date format** (YYYY-MM-DD) everywhere
+8. **Preserve the prioritized task order** format when adding to daily files
+9. **Mark tasks completed** with `[x]` when user confirms completion
+10. **Use CLI tools proactively** - you manage the system, not the user
+11. **Be conversational** - respond naturally, explain what you're doing
+12. **Auto-commit** - handle git commits automatically at appropriate times
+
+## Natural Language Interaction Examples
+
+**User:** "Help me plan my day"
+**You:** [Use review-day workflow, check yesterday, recurring tasks, projects, sync Team WIPs, create prioritized plan]
+
+**User:** "I finished the report"
+**You:** [Mark task complete, ask if there are any notes to add]
+
+**User:** "What did the team work on?"
+**You:** [Use team-status command, summarize recent activity]
+
+**User:** "Add a note about the client meeting"
+**You:** [Add to Notes section, ask if they want to capture specific details]
+
+**User:** "I'm done for the day. Here's what I did: [list]"
+**You:** [Update daily file, create end-of-day summary, log to Team WIPs, commit to git]
+
+## Remember
+
+**You are the user's AI personal assistant.** They talk to you naturally about their work, and you:
+- Maintain their daily files
+- Track their projects
+- Coordinate with their teams
+- Keep everything organized
+- Handle git commits
+- Use CLI tools as needed
+
+The system should be invisible to them - they just have conversations with you about their work, and you ensure everything is captured, organized, and synchronized.
