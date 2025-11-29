@@ -15,7 +15,7 @@ DAILY_DIR="$ROOT_DIR/daily"
 PROJECTS_DIR="$ROOT_DIR/projects"
 REVIEWS_DIR="$ROOT_DIR/reviews"
 RECURRING_TASKS_FILE="$ROOT_DIR/recurring-tasks.md"
-EMBEDDED_DIR="$ROOT_DIR/embedded"
+SHARED_DIR="$ROOT_DIR/embedded"
 
 # Helper functions
 log_info() {
@@ -136,8 +136,6 @@ cmd_new_day() {
 
     if [ -f "$today_file" ]; then
         log_warning "Today's file already exists: $today_file"
-        echo "Opening it for editing..."
-        ${EDITOR:-nano} "$today_file"
         return
     fi
 
@@ -170,8 +168,6 @@ EOF
     if [ "$task_count" -gt 0 ]; then
         log_info "Added $task_count recurring task(s)"
     fi
-
-    ${EDITOR:-nano} "$today_file"
 }
 
 # Command: add-task
@@ -179,7 +175,7 @@ cmd_add_task() {
     local task="$1"
     if [ -z "$task" ]; then
         log_error "Please provide a task description"
-        echo "Usage: accomplish add-task \"Task description\""
+        echo "Usage: wip add-task \"Task description\""
         exit 1
     fi
 
@@ -187,7 +183,7 @@ cmd_add_task() {
     local today_file="$DAILY_DIR/$today.md"
 
     if [ ! -f "$today_file" ]; then
-        log_error "Today's file doesn't exist. Run 'accomplish new-day' first."
+        log_error "Today's file doesn't exist. Run 'wip new-day' first."
         exit 1
     fi
 
@@ -216,9 +212,6 @@ cmd_review_yesterday() {
     log_info "Reviewing $(get_readable_date "$last_day")"
     echo ""
     cat "$last_file"
-    echo ""
-    log_info "Press Enter to continue..."
-    read
 }
 
 # Command: review-projects
@@ -277,11 +270,6 @@ cmd_review_projects() {
     if [ "$found_any" = false ]; then
         log_success "All projects are up to date!"
     fi
-
-    echo ""
-    log_info "Press Enter to open projects index..."
-    read
-    ${EDITOR:-nano} "$projects_file"
 }
 
 # Command: weekly-summary
@@ -291,7 +279,6 @@ cmd_weekly_summary() {
 
     if [ -f "$summary_file" ]; then
         log_warning "Weekly summary already exists: $summary_file"
-        ${EDITOR:-nano} "$summary_file"
         return
     fi
 
@@ -320,7 +307,6 @@ cmd_weekly_summary() {
 EOF
 
     log_success "Created weekly summary: $summary_file"
-    ${EDITOR:-nano} "$summary_file"
 }
 
 # Command: monthly-summary
@@ -330,7 +316,6 @@ cmd_monthly_summary() {
 
     if [ -f "$summary_file" ]; then
         log_warning "Monthly summary already exists: $summary_file"
-        ${EDITOR:-nano} "$summary_file"
         return
     fi
 
@@ -370,7 +355,6 @@ cmd_monthly_summary() {
 EOF
 
     log_success "Created monthly summary: $summary_file"
-    ${EDITOR:-nano} "$summary_file"
 }
 
 # Command: list-days
@@ -392,7 +376,7 @@ cmd_open_project() {
 
     if [ -z "$project" ]; then
         log_error "Please provide a project name"
-        echo "Usage: accomplish open-project <project-name>"
+        echo "Usage: wip open-project <project-name>"
         exit 1
     fi
 
@@ -428,24 +412,22 @@ cmd_open_project() {
 EOF
         log_success "Created notes file: $notes_file"
     fi
-
-    ${EDITOR:-nano} "$notes_file"
 }
 
-# Command: log-project (collaborative embedded projects)
+# Command: log-project (collaborative shared projects)
 cmd_log_project() {
     local project="$1"
 
     if [ -z "$project" ]; then
         log_error "Please provide a project name"
-        echo "Usage: accomplish log-project <project-name> [message]"
+        echo "Usage: wip log-project <project-name> [message]"
         exit 1
     fi
 
-    local project_dir="$EMBEDDED_DIR/$project"
+    local project_dir="$SHARED_DIR/$project"
 
     if [ ! -d "$project_dir" ]; then
-        log_error "Embedded project not found: $project_dir"
+        log_error "Shared project not found: $project_dir"
         exit 1
     fi
 
@@ -482,9 +464,6 @@ EOF
         log_success "Created new daily log: $daily_file"
     fi
 
-    # Open for editing
-    ${EDITOR:-nano} "$daily_file"
-
     # Auto-commit if there are changes
     cd "$project_dir"
     if ! git diff --quiet "$daily_file" 2>/dev/null; then
@@ -517,14 +496,14 @@ cmd_sync_project() {
 
     if [ -z "$project" ]; then
         log_error "Please provide a project name"
-        echo "Usage: accomplish sync-project <project-name>"
+        echo "Usage: wip sync-project <project-name>"
         exit 1
     fi
 
-    local project_dir="$EMBEDDED_DIR/$project"
+    local project_dir="$SHARED_DIR/$project"
 
     if [ ! -d "$project_dir" ]; then
-        log_error "Embedded project not found: $project_dir"
+        log_error "Shared project not found: $project_dir"
         exit 1
     fi
 
@@ -582,14 +561,14 @@ cmd_team_status() {
 
     if [ -z "$project" ]; then
         log_error "Please provide a project name"
-        echo "Usage: accomplish team-status <project-name> [days]"
+        echo "Usage: wip team-status <project-name> [days]"
         exit 1
     fi
 
-    local project_dir="$EMBEDDED_DIR/$project"
+    local project_dir="$SHARED_DIR/$project"
 
     if [ ! -d "$project_dir" ]; then
-        log_error "Embedded project not found: $project_dir"
+        log_error "Shared project not found: $project_dir"
         exit 1
     fi
 
@@ -655,16 +634,16 @@ cmd_team_status() {
 
 # Command: list-embedded-projects
 cmd_list_embedded_projects() {
-    if [ ! -d "$EMBEDDED_DIR" ]; then
-        log_warning "No embedded projects directory found"
+    if [ ! -d "$SHARED_DIR" ]; then
+        log_warning "No shared projects directory found"
         return
     fi
 
-    log_info "Embedded projects:"
+    log_info "Shared projects:"
     echo ""
 
     local found_any=false
-    for project_dir in "$EMBEDDED_DIR"/*; do
+    for project_dir in "$SHARED_DIR"/*; do
         if [ -d "$project_dir" ] && [ -d "$project_dir/.git" ]; then
             found_any=true
             local project=$(basename "$project_dir")
@@ -698,16 +677,16 @@ cmd_list_embedded_projects() {
 
             echo -e "  ${BLUE}$display_name${NC} ($project)"
             echo -e "    Status: $status"
-            echo -e "    Location: embedded/$project/"
+            echo -e "    Location: shared/$project/"
             echo ""
         fi
     done
 
     if [ "$found_any" = false ]; then
-        echo "  No embedded projects found"
+        echo "  No shared projects found"
         echo ""
         echo "To create one:"
-        echo "  accomplish clone-project <git-url> <project-name>"
+        echo "  wip clone-project <git-url> <project-name>"
     fi
 }
 
@@ -718,13 +697,13 @@ cmd_clone_project() {
 
     if [ -z "$git_url" ] || [ -z "$project_name" ]; then
         log_error "Please provide both git URL and project name"
-        echo "Usage: accomplish clone-project <git-url> <project-name>"
+        echo "Usage: wip clone-project <git-url> <project-name>"
         exit 1
     fi
 
-    mkdir -p "$EMBEDDED_DIR"
+    mkdir -p "$SHARED_DIR"
 
-    local project_dir="$EMBEDDED_DIR/$project_name"
+    local project_dir="$SHARED_DIR/$project_name"
 
     if [ -d "$project_dir" ]; then
         log_error "Project directory already exists: $project_dir"
@@ -755,7 +734,7 @@ cmd_clone_project() {
             echo "- **Type:** Collaborative (embedded)" >> "$projects_index"
             echo "- **Review Cadence:** daily" >> "$projects_index"
             echo "- **Last Reviewed:** $(get_date)" >> "$projects_index"
-            echo "- **Location:** \`embedded/$project_name/\` (shared team git repository)" >> "$projects_index"
+            echo "- **Location:** \`shared/$project_name/\` (shared team git repository)" >> "$projects_index"
             echo "- **Remote:** $git_url" >> "$projects_index"
             echo "- **Next Steps:**" >> "$projects_index"
             echo "  - [ ] Review project structure and documentation" >> "$projects_index"
@@ -767,8 +746,8 @@ cmd_clone_project() {
         echo ""
         log_info "Next steps:"
         echo "  1. Review the project: cd $project_dir"
-        echo "  2. Log your work: accomplish log-project $project_name"
-        echo "  3. Sync with team: accomplish sync-project $project_name"
+        echo "  2. Log your work: wip log-project $project_name"
+        echo "  3. Sync with team: wip sync-project $project_name"
     else
         log_error "Failed to clone project"
         exit 1
@@ -817,9 +796,9 @@ case "${1:-}" in
         cmd_clone_project "$2" "$3"
         ;;
     *)
-        echo "Personal Accomplishment Tool"
+        echo "Formigio WIP - Work In Progress"
         echo ""
-        echo "Usage: accomplish <command> [options]"
+        echo "Usage: wip <command> [options]"
         echo ""
         echo "Commands:"
         echo "  new-day                      Create today's daily file"
@@ -836,7 +815,7 @@ case "${1:-}" in
         echo "  log-project <name>           Log today's work on a project"
         echo "  sync-project <name>          Sync with team (pull updates)"
         echo "  team-status <name> [days]    Show recent team activity"
-        echo "  list-embedded-projects       List all embedded projects"
+        echo "  list-embedded-projects       List all shared projects"
         echo ""
         exit 1
         ;;
