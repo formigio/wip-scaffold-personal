@@ -1,281 +1,362 @@
 # Getting Started with Formigio WIP
 
-Welcome to **Formigio WIP** (Work In Progress) - a simple, powerful system for tracking your daily tasks, managing projects, and collaborating with teammates.
+Welcome to **Formigio WIP** (Work In Progress) - an AI-powered personal assistant system built for Claude Code.
 
-## What You Get
+## What This Is
 
-- **Personal WIP** - Your daily task tracking and project management
-- **Team WIPs** - Collaborate asynchronously on shared projects
-- **Plain Text** - Everything in markdown files with git version control
-- **No Dependencies** - Just bash, git, and a text editor
-- **CLI Tools** - Simple commands for common operations
+**Formigio WIP is a Claude Code-first productivity system.** It gives Claude Code a structured workspace to help you:
+- Plan your days and prioritize work
+- Track daily accomplishments
+- Manage projects and deadlines
+- Collaborate asynchronously with teammates
+- Keep everything organized automatically
 
-## Quick Setup (5 minutes)
+**You work with Claude in natural language. Claude manages the files.** The system uses markdown files and git for simplicity, but you rarely interact with them directly - Claude does that for you.
 
-### 1. Clone This Repository
+## Prerequisites
 
-```bash
-cd ~
-git clone https://github.com/formigio/wip-scaffold-personal.git my-wip
-cd my-wip
-```
+1. **[Claude Code](https://claude.com/code)** - Required (this is built for Claude)
+2. **Git** - For version control
+3. **Text editor** - Optional (for when you want to write directly)
 
-Name it whatever you like - `my-wip`, `personal-wip`, or just `wip`.
+## Quick Setup (5 minutes with Claude's Help)
 
-### 2. Make CLI Executable
+### Step 1: Clone and Set Up
 
-```bash
-chmod +x bin/wip
-```
+Open Claude Code and say:
 
-### 3. Customize Recurring Tasks
+> "Clone the Formigio WIP scaffold from https://github.com/formigio/wip-scaffold-personal into ~/my-wip and set it up for me"
 
-Edit `recurring-tasks.md` to define your regular tasks:
+Claude will:
+- Clone the repository
+- Make CLI tools executable
+- Show you the structure
 
-```bash
-nano recurring-tasks.md  # or your preferred editor
-```
+### Step 2: Customize Recurring Tasks
 
-Example:
-```markdown
-## Daily Tasks
-- [ ] Check email
-- [ ] Review project status
+Tell Claude about your routine:
 
-## Monday Tasks
-- [ ] Weekly planning
-- [ ] Team sync
+> "Help me set up my recurring tasks. Daily I want to check email and review projects. On Mondays I do weekly planning. On Fridays I do weekly reviews."
 
-## Friday Tasks
-- [ ] Weekly review
-```
+Claude will:
+- Update `recurring-tasks.md` with your schedule
+- Explain how it works
+- Save the changes
 
-### 4. Create Your First Daily File
+### Step 3: Start Today
 
-```bash
-./bin/wip new-day
-```
+Simply say:
 
-This creates `daily/2025-11-28.md` (or today's date) with:
-- Your recurring tasks for today
-- Sections for Focus, Tasks, and Notes
-- Ready for you to fill in
+> "Start today's daily file"
 
-### 5. Set Up Your Projects
+Claude creates your first daily file with today's recurring tasks ready to go.
 
-Edit `projects/index.md` to track your personal projects:
+## Daily Workflow with Claude
 
-```markdown
-## My Project
-- **Status:** Active
-- **Review Cadence:** weekly
-- **Last Reviewed:** 2025-11-28
-- **Remaining Estimate:** 2 weeks
-- **Next Steps:**
-  - [ ] First task
-  - [ ] Second task
-```
+### Morning Planning
 
-## Daily Workflow
+**Just ask Claude to help:**
 
-### Morning
+> "Help me plan my day"
 
-```bash
-# Create today's file
-./bin/wip new-day
+Or use the specialized agent:
 
-# Review yesterday (optional)
-./bin/wip review-yesterday
+> "/review-day"
 
-# Check projects due for review
-./bin/wip review-projects
-```
+Claude will:
+- Review what you did yesterday
+- Check your recurring tasks for today
+- Identify projects due for review
+- Help you set priorities
+- Create your daily plan
 
 ### During the Day
 
-Work on your tasks and check them off:
-```markdown
-- [x] Completed task
-- [ ] Still working on this
-```
+**Work naturally and tell Claude what you're doing:**
+
+> "I just finished the quarterly report. Mark that task complete and add a note that I sent it to Sarah for review."
+
+> "I had a great idea for the marketing campaign - capture this..."
+
+Claude handles all the file updates, formatting, and organization.
 
 ### End of Day
 
-Add a summary and commit:
-```markdown
-## End of Day Summary
+**Tell Claude what you accomplished:**
 
-### Completed Today
-- ✅ Task 1
-- ✅ Task 2
+> "Wrapping up for the day. I finished the report, had two client meetings, and made progress on the website redesign."
 
-### Carried Forward
-- [ ] Incomplete task
-
-### Key Updates
-- Important notes
-```
-
-Then commit:
-```bash
-git add .
-git commit -m "Daily update: $(date +%Y-%m-%d)"
-git push
-```
+Claude will:
+- Update your daily file with accomplishments
+- Create an end-of-day summary
+- Mark tasks complete
+- Commit everything to git
 
 ## Working with Team WIPs
 
 ### Joining a Team WIP
 
-If someone shares a Team WIP project with you:
+When someone shares a collaborative project with you:
 
-```bash
-./bin/wip clone-project <git-url> <project-name>
-```
+> "Clone the team project from [URL]. My username for this project is '[your-username]'"
 
-Example:
-```bash
-./bin/wip clone-project git@github.com:team/awesome-project.git awesome-project
-```
+Claude uses `./bin/wip clone-project` behind the scenes.
 
-You'll be prompted for your username - this identifies you in the team's daily logs.
+### Daily Team Collaboration
 
-### Daily Team WIP Workflow
+**Morning - see what teammates did:**
 
-**Morning:**
-```bash
-# See what teammates did
-./bin/wip sync-project awesome-project
-./bin/wip team-status awesome-project
-```
+> "What did the team work on yesterday in [project-name]?"
 
-**End of Day:**
-```bash
-# Log your work (auto-commits and pushes)
-./bin/wip log-project awesome-project
-```
+**During the day - work on the project:**
 
-### Team WIP Structure
+> "Add my research notes about [topic] to the [project-name] shared notes"
 
-Each Team WIP has:
-- **`shared/<project-name>/`** - The shared repo
-- **`shared/<project-name>/daily/you/`** - Your daily logs
-- **`shared/<project-name>/daily/teammate/`** - Teammate's logs
-- **`shared/<project-name>/notes.md`** - Shared notes
-- **`shared/<project-name>/decisions.md`** - Decision records
+**End of day - log your contributions:**
 
-## CLI Command Reference
+> "Log to [project-name]: I reviewed the proposal, added feedback to section 3, and updated the timeline"
 
-### Personal WIP
-```bash
-./bin/wip new-day                # Create today's file
-./bin/wip add-task "Task"        # Add task to today
-./bin/wip review-yesterday       # View yesterday
-./bin/wip review-projects        # Check project reviews
-./bin/wip list-days 7            # List last 7 days
-./bin/wip weekly-summary         # Create weekly review
-./bin/wip monthly-summary        # Create monthly review
-```
+Claude handles sync, file management, and commits automatically.
 
-### Team WIPs
-```bash
-./bin/wip clone-project <url> <name>    # Join a team WIP
-./bin/wip sync-project <name>           # Pull teammate updates
-./bin/wip log-project <name>            # Log your work
-./bin/wip team-status <name>            # See team activity
-./bin/wip list-shared-projects          # List all team WIPs
-```
+## Example Conversations
 
-## Directory Structure
+**Starting your day:**
+> You: "Good morning Claude, help me get started"
+>
+> Claude: "Good morning! Let me check yesterday and today's schedule...
+>
+> Yesterday you completed 4 of 6 tasks. Your project X is due for weekly review. Today you have 3 recurring tasks and 2 carryover items.
+>
+> I recommend focusing on:
+> 1. Project X review (30 min)
+> 2. Finishing the proposal from yesterday
+> 3. Your 2pm client meeting prep
+>
+> Shall I create today's file with this plan?"
+
+**Capturing notes from a meeting:**
+> You: "I just met with the design team. They want a card-based layout, dark mode support, and mobile-first approach. Analytics integration is required by Q2 end. Capture this."
+>
+> Claude: "I'll add this to your daily notes and create a project note... Done! I've:
+> - Added meeting notes to today's daily file
+> - Created a design-project note with requirements
+> - Added Q2 deadline to your project tracking
+>
+> Would you like me to break this into tasks?"
+
+**Checking team progress:**
+> You: "What's the status of the book project?"
+>
+> Claude: "Let me check the team activity...
+>
+> Last 3 days in book-project:
+> - Sarah: Drafted Chapter 3, added outline for Chapter 4
+> - Mike: Reviewed Chapter 1 and 2, provided feedback
+> - You: Outlined Chapter 5 (yesterday)
+>
+> Sarah mentioned she's blocked on Chapter 4 - waiting for your feedback on the entrepreneurship section."
+
+## The Structure (Claude Manages This)
+
+You don't need to memorize this - Claude knows it. But for reference:
 
 ```
 my-wip/
-├── bin/
-│   └── wip              # CLI tool
-├── daily/               # Your personal daily files
-│   └── 2025-11-28.md
-├── shared/              # Team WIPs you're part of
-│   └── project-name/    # A team WIP (separate git repo)
-├── projects/
-│   ├── index.md         # Your project tracking
-│   └── project-name/    # Personal project folders
-├── team/                # If you manage a team
-│   ├── daily-logs/
-│   └── status-reports/
-├── reviews/
-│   ├── weekly/
-│   └── monthly/
-└── recurring-tasks.md   # Your recurring task definitions
+├── daily/               # Claude creates these daily
+├── shared/              # Team WIPs Claude manages
+├── projects/index.md    # Claude tracks your projects
+├── recurring-tasks.md   # Your routine (you defined with Claude)
+└── CLAUDE.md           # Teaches Claude how this works
 ```
 
-## Tips for Success
+## CLI Commands (For Claude's Use)
 
-1. **Be consistent** - Run `./bin/wip new-day` every morning
-2. **Commit daily** - Git is your backup and history
-3. **Review projects** - Keep "Last Reviewed" dates current
-4. **Use recurring tasks** - Automate your routine
-5. **Keep it simple** - Markdown is the power
-6. **Reflect regularly** - Weekly/monthly reviews help identify patterns
+These exist for Claude to use efficiently. You won't run them:
 
-## Optional: Claude Code Integration
+```bash
+./bin/wip new-day            # Claude: create today's file
+./bin/wip sync-project       # Claude: pull team updates
+./bin/wip log-project        # Claude: log work to team WIP
+./bin/wip team-status        # Claude: show team activity
+```
 
-If you use [Claude Code](https://claude.com/claude-code), this system includes AI-powered agents:
+When you ask Claude to do things, it uses the right commands automatically.
 
-- `/review-day` - Review yesterday and plan today
-- `/prioritize` - Prioritize your tasks
-- `/plan-day` - Create time-blocked schedule
-- `/note-organizer` - Capture meeting notes
+## Claude Code Agents
 
-The system works great without Claude Code too!
+Specialized workflows you can invoke:
 
-## Customization
+- **`/review-day`** - Complete morning planning workflow
+- **`/prioritize`** - Analyze and prioritize your tasks
+- **`/plan-day`** - Create detailed time-blocked schedule
+- **`/note-organizer`** - Capture and structure meeting notes
 
-### Recurring Tasks
+Just type the slash command in Claude Code.
 
-Edit `recurring-tasks.md` to match your schedule:
-- Add/remove tasks for any day
-- Comment out tasks: `<!-- - [ ] Task -->`
-- Different tasks for different days of the week
+## Tips for Working with Claude
 
-### Project Review Cadences
+**Be conversational and natural:**
+- ❌ Don't say: "Update daily/2025-11-28.md with task completion"
+- ✅ Do say: "I finished the report, mark that done"
 
-- `daily` - Review every day
-- `weekly` - Review weekly (7+ days)
-- `monthly` - Review monthly (30+ days)
-- `weekly (Tuesday)` - Specific day via recurring task
+**Let Claude handle complexity:**
+- ❌ Don't: Manually edit files and worry about format
+- ✅ Do: "Add a note about the client feedback"
 
-### Team Status Reports
+**Ask for help:**
+- "What should I prioritize today?"
+- "Show me my progress this week"
+- "What's the team working on?"
+- "Help me plan tomorrow"
 
-If you manage a team, use:
-- `team/daily-logs/` - Informal daily logs
-- `team/status-reports/` - Formal reports for leadership
+**Give Claude context:**
+- "I'm starting work on the new feature"
+- "Meeting went well, here's what we decided..."
+- "Blocked on X until Y happens"
+
+## Real-World Usage
+
+**Solo developer:**
+> Morning: "/review-day"
+>
+> During day: "Mark task X complete. Add note that the API is deployed."
+>
+> End of day: "Done for today. Deployed the API, fixed 3 bugs, started the dashboard redesign."
+
+**Team collaboration:**
+> "Sync the design-system project and show me updates"
+>
+> "Log to design-system: Implemented the button component, added tests, updated docs"
+>
+> "What blockers does the team have?"
+
+**Project manager:**
+> "Show me the status of all my projects"
+>
+> "Which projects need review this week?"
+>
+> "Create a status report for the past week"
+
+## Why This Works
+
+**Claude as your AI assistant:**
+- Knows the structure from CLAUDE.md
+- Uses CLI tools efficiently
+- Keeps everything organized
+- Handles git commits automatically
+- Coordinates with teammates' Claude instances
+
+**Simple underneath:**
+- Plain markdown files (portable, searchable)
+- Git version control (full history, backup)
+- No databases or complex tools
+- Works offline
+- Easy to extend
+
+**Async collaboration:**
+- Everyone works with their own Claude
+- Git coordinates the work
+- Daily logs show progress
+- Natural async communication
+
+## Common Workflows
+
+**Weekly review:**
+> "Show me what I accomplished this week"
+
+**Project planning:**
+> "I'm starting a new project called X. It's a [description]. Help me set it up."
+
+**Task management:**
+> "Add a task to research Y for tomorrow"
+>
+> "Move task Z to next Monday"
+
+**Team coordination:**
+> "Check if anyone is blocked on the API work"
+>
+> "Log that I reviewed Sarah's proposal and added comments"
 
 ## Getting Help
 
-- **Documentation:** Check `README.md` for detailed info
-- **CLAUDE.md:** Explains the system to Claude Code
-- **Issues:** [GitHub Issues](https://github.com/formigio/wip-scaffold-personal/issues)
-- **Community:** Share your setup and learn from others
+**Ask Claude!** It has access to all documentation:
+
+> "How do I track a new project?"
+>
+> "Where should I add notes about X?"
+>
+> "Show me my tasks for this week"
+>
+> "How does the team WIP workflow work?"
+
+Claude will explain and help you.
+
+## First Steps
+
+1. **Set up with Claude's help** (see Step 1-3 above)
+
+2. **Use it for a week:**
+   - Morning: "Help me plan my day"
+   - During: Tell Claude what you're doing
+   - Evening: "Here's what I accomplished..."
+
+3. **Customize as needed:**
+   - Adjust recurring tasks
+   - Add your projects
+   - Set up team WIPs if collaborating
+
+4. **Explore agents:**
+   - Try `/review-day` for morning planning
+   - Try `/note-organizer` after meetings
+   - Try `/prioritize` when overwhelmed
+
+## Advanced Usage
+
+Once comfortable, explore:
+- **Weekly/monthly reviews** with Claude's help
+- **Status reports** for team leadership
+- **Custom recurring tasks** for your workflow
+- **Multiple team WIPs** for different collaborations
+- **Project templates** for repeating work
+
+## The Philosophy
+
+**You focus on the work. Claude handles the system.**
+
+This isn't about learning commands or file formats. It's about having an AI assistant that:
+- Remembers what you did
+- Helps you plan what's next
+- Keeps you organized
+- Coordinates with teammates
+- Lets you think in natural language
+
+The system is designed to be invisible - you just talk to Claude like a personal assistant, and everything stays organized automatically.
 
 ## Why Formigio WIP?
 
-- **Plain text** - Works everywhere, forever
-- **Git version control** - Full history and backup
-- **Portable** - Clone anywhere, no dependencies
-- **Searchable** - grep, file search, git log all work
-- **Extensible** - Add your own scripts and integrations
-- **AI-friendly** - Claude Code can read and help manage everything
-- **Async collaboration** - Team WIPs work on everyone's schedule
+**Traditional task managers:** You adapt to the tool
+**Formigio WIP:** Claude adapts to you
 
-## Next Steps
+- No rigid workflows
+- No complex UI to learn
+- No vendor lock-in
+- Just natural conversation
+- Files you can read anywhere
+- Git you already know
 
-1. ✅ Complete setup above
-2. Customize recurring tasks for your schedule
-3. Add your personal projects to `projects/index.md`
-4. Use it daily for a week to build the habit
-5. If collaborating, join or create Team WIPs
-6. Explore weekly/monthly reviews for reflection
+## Support & Community
+
+- **Documentation:** CLAUDE.md explains everything to Claude
+- **README.md:** System overview
+- **Issues:** [GitHub Issues](https://github.com/formigio/wip-scaffold-personal/issues)
+- **Community:** Share workflows and learn from others
 
 ---
 
-**Ready to track your work in progress?** Run `./bin/wip new-day` and get started! 🚀
+**Ready to get started?**
+
+Open Claude Code and say:
+
+> "Help me set up Formigio WIP from the getting started guide"
+
+Claude will take it from there! 🚀
