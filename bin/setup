@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Formigio WIP - First Time Setup Script
+# This script initializes your personal WIP by removing the scaffold's git history
+# and creating a fresh repository for your own work.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WIP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo "🚀 Formigio WIP - First Time Setup"
+echo ""
+
+# Check if this looks like it still has scaffold git history
+if [ -d "$WIP_ROOT/.git" ]; then
+    # Check if remote is the scaffold repo
+    REMOTE_URL=$(git -C "$WIP_ROOT" remote get-url origin 2>/dev/null || echo "")
+
+    if [[ "$REMOTE_URL" == *"wip-scaffold-personal"* ]]; then
+        echo "📦 Detected scaffold git history. Resetting for your personal use..."
+        echo ""
+
+        # Remove the scaffold's git history
+        rm -rf "$WIP_ROOT/.git"
+
+        # Initialize fresh git repository
+        git -C "$WIP_ROOT" init
+        git -C "$WIP_ROOT" add .
+        git -C "$WIP_ROOT" commit -m "Initial commit: Personal WIP setup"
+
+        echo "✅ Git repository reset successfully!"
+        echo ""
+        echo "Your WIP now has a fresh git history."
+        echo "You can add your own remote with:"
+        echo "  git remote add origin <your-repo-url>"
+        echo ""
+    else
+        echo "✅ Git repository already initialized (not scaffold)"
+        echo ""
+    fi
+else
+    echo "📦 No git repository found. Initializing..."
+    echo ""
+
+    # Initialize fresh git repository
+    git -C "$WIP_ROOT" init
+    git -C "$WIP_ROOT" add .
+    git -C "$WIP_ROOT" commit -m "Initial commit: Personal WIP setup"
+
+    echo "✅ Git repository initialized!"
+    echo ""
+fi
+
+# Make sure wip script is executable
+chmod +x "$WIP_ROOT/bin/wip"
+
+echo "🎉 Setup complete!"
+echo ""
+echo "Next steps:"
+echo "1. Customize your recurring-tasks.md"
+echo "2. Start your first day with: ./bin/wip new-day"
+echo "3. Or ask Claude Code to help you plan your day"
+echo ""
+echo "For help, see README.md or ask Claude Code!"

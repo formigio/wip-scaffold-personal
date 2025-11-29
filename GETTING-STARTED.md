@@ -25,12 +25,15 @@ Welcome to **Formigio WIP** (Work In Progress) - an AI-powered personal assistan
 
 Open Claude Code and say:
 
-> "Clone the Formigio WIP scaffold from https://github.com/formigio/wip-scaffold-personal into ~/my-wip and set it up for me"
+> "Clone the Formigio WIP scaffold from https://github.com/formigio/wip-scaffold-personal into ~/my-wip and run the setup script"
 
 Claude will:
-- Clone the repository
-- Make CLI tools executable
-- Show you the structure
+1. Clone the repository
+2. Run `bin/setup` which:
+   - Removes the scaffold's git history
+   - Initializes a fresh git repository for your personal use
+   - Makes CLI tools executable
+3. Show you the structure
 
 ### Step 2: Customize Recurring Tasks
 
