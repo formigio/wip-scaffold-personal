@@ -15,6 +15,7 @@ DAILY_DIR="$ROOT_DIR/daily"
 PROJECTS_DIR="$ROOT_DIR/projects"
 REVIEWS_DIR="$ROOT_DIR/reviews"
 RECURRING_TASKS_FILE="$ROOT_DIR/recurring-tasks.md"
+EMBEDDED_DIR="$ROOT_DIR/embedded"
 
 # Helper functions
 log_info() {
@@ -431,6 +432,349 @@ EOF
     ${EDITOR:-nano} "$notes_file"
 }
 
+# Command: log-project (collaborative embedded projects)
+cmd_log_project() {
+    local project="$1"
+
+    if [ -z "$project" ]; then
+        log_error "Please provide a project name"
+        echo "Usage: accomplish log-project <project-name> [message]"
+        exit 1
+    fi
+
+    local project_dir="$EMBEDDED_DIR/$project"
+
+    if [ ! -d "$project_dir" ]; then
+        log_error "Embedded project not found: $project_dir"
+        exit 1
+    fi
+
+    # Get user identity
+    local me_file="$project_dir/.me"
+    if [ ! -f "$me_file" ]; then
+        log_error "Identity file not found. Please create $me_file with your name"
+        exit 1
+    fi
+
+    local username=$(cat "$me_file")
+    local today=$(get_date)
+    local daily_dir="$project_dir/daily/$username"
+    local daily_file="$daily_dir/$today.md"
+
+    # Create daily directory if it doesn't exist
+    mkdir -p "$daily_dir"
+
+    # Check if file exists
+    if [ ! -f "$daily_file" ]; then
+        # Create new daily log
+        cat > "$daily_file" << EOF
+# $today - $(cat "$project_dir/team.json" | grep -A 1 "\"name\": \"$username\"" | grep "display_name" | sed 's/.*"display_name": "\(.*\)".*/\1/')
+
+## Completed
+
+## In Progress
+
+## Blockers
+
+## Notes
+
+EOF
+        log_success "Created new daily log: $daily_file"
+    fi
+
+    # Open for editing
+    ${EDITOR:-nano} "$daily_file"
+
+    # Auto-commit if there are changes
+    cd "$project_dir"
+    if ! git diff --quiet "$daily_file" 2>/dev/null; then
+        log_info "Committing changes..."
+        git add "$daily_file"
+        git commit -m "$username: Daily update $today" -m "$(cat <<'EOF'
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+
+        # Push if remote is configured
+        if git remote get-url origin &>/dev/null; then
+            log_info "Pushing to remote..."
+            git push origin main 2>&1 || log_warning "Push failed - you may need to pull first or set up remote"
+        else
+            log_warning "No remote configured - commit saved locally"
+        fi
+
+        log_success "Daily log updated and committed"
+    else
+        log_info "No changes to commit"
+    fi
+}
+
+# Command: sync-project
+cmd_sync_project() {
+    local project="$1"
+
+    if [ -z "$project" ]; then
+        log_error "Please provide a project name"
+        echo "Usage: accomplish sync-project <project-name>"
+        exit 1
+    fi
+
+    local project_dir="$EMBEDDED_DIR/$project"
+
+    if [ ! -d "$project_dir" ]; then
+        log_error "Embedded project not found: $project_dir"
+        exit 1
+    fi
+
+    cd "$project_dir"
+
+    # Check if remote is configured
+    if ! git remote get-url origin &>/dev/null; then
+        log_warning "No remote configured for this project"
+        return
+    fi
+
+    log_info "Syncing project: $project"
+
+    # Fetch
+    git fetch origin 2>&1
+
+    # Get current branch
+    local current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+    # Check if behind remote
+    local behind=$(git rev-list HEAD..origin/$current_branch --count 2>/dev/null || echo "0")
+
+    if [ "$behind" -gt 0 ]; then
+        log_info "You are $behind commit(s) behind. Pulling changes..."
+
+        # Show what's new before pulling
+        echo ""
+        echo "New commits:"
+        git log HEAD..origin/$current_branch --pretty=format:"%C(yellow)%h%C(reset) - %C(cyan)%an%C(reset): %s %C(green)(%ar)%C(reset)" 2>/dev/null
+        echo ""
+        echo ""
+
+        # Pull
+        if git pull origin $current_branch; then
+            log_success "Successfully pulled changes"
+        else
+            log_error "Pull failed - you may have conflicts to resolve"
+            exit 1
+        fi
+    else
+        log_success "Project is up to date"
+    fi
+
+    # Check if ahead of remote
+    local ahead=$(git rev-list origin/$current_branch..HEAD --count 2>/dev/null || echo "0")
+    if [ "$ahead" -gt 0 ]; then
+        log_warning "You have $ahead unpushed commit(s)"
+    fi
+}
+
+# Command: team-status
+cmd_team_status() {
+    local project="$1"
+    local days="${2:-3}"
+
+    if [ -z "$project" ]; then
+        log_error "Please provide a project name"
+        echo "Usage: accomplish team-status <project-name> [days]"
+        exit 1
+    fi
+
+    local project_dir="$EMBEDDED_DIR/$project"
+
+    if [ ! -d "$project_dir" ]; then
+        log_error "Embedded project not found: $project_dir"
+        exit 1
+    fi
+
+    local daily_dir="$project_dir/daily"
+
+    if [ ! -d "$daily_dir" ]; then
+        log_warning "No daily logs found"
+        return
+    fi
+
+    echo ""
+    echo "$(cat "$project_dir/team.json" | grep "project_name" | sed 's/.*"project_name": "\(.*\)".*/\1/') - Last $days days of activity:"
+    echo ""
+
+    # Get list of dates to check (last N days)
+    for i in $(seq 0 $((days - 1))); do
+        local check_date=$(date -d "$i days ago" +%Y-%m-%d 2>/dev/null || date -v-${i}d +%Y-%m-%d 2>/dev/null)
+        local readable_date=$(get_readable_date "$check_date")
+
+        # Determine relative date label
+        if [ $i -eq 0 ]; then
+            echo -e "${GREEN}$check_date (Today):${NC}"
+        elif [ $i -eq 1 ]; then
+            echo -e "${YELLOW}$check_date (Yesterday):${NC}"
+        else
+            echo "$check_date:"
+        fi
+
+        local found_any=false
+
+        # Check each team member
+        for member_dir in "$daily_dir"/*; do
+            if [ -d "$member_dir" ]; then
+                local member=$(basename "$member_dir")
+                local member_file="$member_dir/$check_date.md"
+
+                if [ -f "$member_file" ]; then
+                    found_any=true
+                    # Extract completed tasks
+                    local completed=$(grep "^- \[x\]" "$member_file" | sed 's/^- \[x\] /  /' || echo "")
+                    if [ -n "$completed" ]; then
+                        echo -e "  ${BLUE}$member:${NC}"
+                        echo "$completed"
+                    else
+                        # Show first few lines of notes if no completed tasks
+                        local notes=$(sed -n '/## Notes/,/^$/p' "$member_file" | grep -v "^#" | grep -v "^$" | head -3 | sed 's/^/  /')
+                        if [ -n "$notes" ]; then
+                            echo -e "  ${BLUE}$member:${NC}"
+                            echo "$notes"
+                        fi
+                    fi
+                fi
+            fi
+        done
+
+        if [ "$found_any" = false ]; then
+            echo "  (No activity)"
+        fi
+
+        echo ""
+    done
+}
+
+# Command: list-embedded-projects
+cmd_list_embedded_projects() {
+    if [ ! -d "$EMBEDDED_DIR" ]; then
+        log_warning "No embedded projects directory found"
+        return
+    fi
+
+    log_info "Embedded projects:"
+    echo ""
+
+    local found_any=false
+    for project_dir in "$EMBEDDED_DIR"/*; do
+        if [ -d "$project_dir" ] && [ -d "$project_dir/.git" ]; then
+            found_any=true
+            local project=$(basename "$project_dir")
+
+            cd "$project_dir"
+
+            # Get project name from team.json if it exists
+            local display_name="$project"
+            if [ -f "team.json" ]; then
+                display_name=$(cat team.json | grep "project_name" | sed 's/.*"project_name": "\(.*\)".*/\1/')
+            fi
+
+            # Check git status
+            local status="synced"
+            if git remote get-url origin &>/dev/null; then
+                git fetch origin 2>/dev/null
+                local current_branch=$(git rev-parse --abbrev-ref HEAD)
+                local behind=$(git rev-list HEAD..origin/$current_branch --count 2>/dev/null || echo "0")
+                local ahead=$(git rev-list origin/$current_branch..HEAD --count 2>/dev/null || echo "0")
+
+                if [ "$behind" -gt 0 ]; then
+                    status="${YELLOW}needs pull ($behind behind)${NC}"
+                elif [ "$ahead" -gt 0 ]; then
+                    status="${YELLOW}needs push ($ahead ahead)${NC}"
+                else
+                    status="${GREEN}synced${NC}"
+                fi
+            else
+                status="${YELLOW}no remote${NC}"
+            fi
+
+            echo -e "  ${BLUE}$display_name${NC} ($project)"
+            echo -e "    Status: $status"
+            echo -e "    Location: embedded/$project/"
+            echo ""
+        fi
+    done
+
+    if [ "$found_any" = false ]; then
+        echo "  No embedded projects found"
+        echo ""
+        echo "To create one:"
+        echo "  accomplish clone-project <git-url> <project-name>"
+    fi
+}
+
+# Command: clone-project
+cmd_clone_project() {
+    local git_url="$1"
+    local project_name="$2"
+
+    if [ -z "$git_url" ] || [ -z "$project_name" ]; then
+        log_error "Please provide both git URL and project name"
+        echo "Usage: accomplish clone-project <git-url> <project-name>"
+        exit 1
+    fi
+
+    mkdir -p "$EMBEDDED_DIR"
+
+    local project_dir="$EMBEDDED_DIR/$project_name"
+
+    if [ -d "$project_dir" ]; then
+        log_error "Project directory already exists: $project_dir"
+        exit 1
+    fi
+
+    log_info "Cloning project..."
+    if git clone "$git_url" "$project_dir"; then
+        log_success "Project cloned to: $project_dir"
+
+        # Ask for user identity
+        echo ""
+        echo "What is your username for this project?"
+        read -p "Username: " username
+
+        echo "$username" > "$project_dir/.me"
+        log_success "Identity saved: $username"
+
+        # Create daily directory for this user
+        mkdir -p "$project_dir/daily/$username"
+
+        # Add to projects/index.md
+        local projects_index="$PROJECTS_DIR/index.md"
+        if [ -f "$projects_index" ]; then
+            echo "" >> "$projects_index"
+            echo "## $project_name (embedded)" >> "$projects_index"
+            echo "- **Status:** Active" >> "$projects_index"
+            echo "- **Type:** Collaborative (embedded)" >> "$projects_index"
+            echo "- **Review Cadence:** daily" >> "$projects_index"
+            echo "- **Last Reviewed:** $(get_date)" >> "$projects_index"
+            echo "- **Location:** \`embedded/$project_name/\` (shared team git repository)" >> "$projects_index"
+            echo "- **Remote:** $git_url" >> "$projects_index"
+            echo "- **Next Steps:**" >> "$projects_index"
+            echo "  - [ ] Review project structure and documentation" >> "$projects_index"
+            echo "  - [ ] Make first contribution" >> "$projects_index"
+
+            log_success "Added to projects index"
+        fi
+
+        echo ""
+        log_info "Next steps:"
+        echo "  1. Review the project: cd $project_dir"
+        echo "  2. Log your work: accomplish log-project $project_name"
+        echo "  3. Sync with team: accomplish sync-project $project_name"
+    else
+        log_error "Failed to clone project"
+        exit 1
+    fi
+}
+
 # Main command dispatcher
 case "${1:-}" in
     new-day)
@@ -457,20 +801,42 @@ case "${1:-}" in
     open-project)
         cmd_open_project "$2"
         ;;
+    log-project)
+        cmd_log_project "$2"
+        ;;
+    sync-project)
+        cmd_sync_project "$2"
+        ;;
+    team-status)
+        cmd_team_status "$2" "$3"
+        ;;
+    list-embedded-projects)
+        cmd_list_embedded_projects
+        ;;
+    clone-project)
+        cmd_clone_project "$2" "$3"
+        ;;
     *)
         echo "Personal Accomplishment Tool"
         echo ""
         echo "Usage: accomplish <command> [options]"
         echo ""
         echo "Commands:"
-        echo "  new-day              Create today's daily file"
-        echo "  add-task <task>      Add a task to today's list"
-        echo "  review-yesterday     Review the previous working day"
-        echo "  review-projects      Review projects due for review"
-        echo "  weekly-summary       Create/open weekly summary"
-        echo "  monthly-summary      Create/open monthly summary"
-        echo "  list-days [n]        List last n daily files (default: 7)"
-        echo "  open-project <name>  Open/create project notes"
+        echo "  new-day                      Create today's daily file"
+        echo "  add-task <task>              Add a task to today's list"
+        echo "  review-yesterday             Review the previous working day"
+        echo "  review-projects              Review projects due for review"
+        echo "  weekly-summary               Create/open weekly summary"
+        echo "  monthly-summary              Create/open monthly summary"
+        echo "  list-days [n]                List last n daily files (default: 7)"
+        echo "  open-project <name>          Open/create project notes"
+        echo ""
+        echo "Collaborative Projects:"
+        echo "  clone-project <url> <name>   Clone a shared project repo"
+        echo "  log-project <name>           Log today's work on a project"
+        echo "  sync-project <name>          Sync with team (pull updates)"
+        echo "  team-status <name> [days]    Show recent team activity"
+        echo "  list-embedded-projects       List all embedded projects"
         echo ""
         exit 1
         ;;

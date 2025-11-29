@@ -6,6 +6,7 @@ A simple, markdown-based system for tracking daily tasks, managing projects, and
 
 - **Daily Task Tracking** - Structured daily files with recurring task automation
 - **Project Management** - Track active projects with next steps and review cadences
+- **Collaborative Projects** - Work async with teammates using embedded git repos
 - **Team Logs** - Daily logs and status reports for team leadership
 - **Weekly/Monthly Reviews** - Summarize accomplishments and reflect on progress
 - **CLI Tool** - Bash script for common operations
@@ -77,6 +78,7 @@ Example:
 ├── bin/
 │   └── accomplish           # CLI tool for common operations
 ├── daily/                   # Daily task files (YYYY-MM-DD.md)
+├── embedded/                # Collaborative project repos (separate git histories)
 ├── projects/
 │   ├── index.md            # Master project list
 │   └── [project-name]/     # Individual project folders
@@ -166,6 +168,73 @@ Example:
 
 # Open/create project notes
 ./bin/accomplish open-project <project-name>
+
+# Collaborative Projects
+./bin/accomplish clone-project <url> <name>    # Clone shared project
+./bin/accomplish log-project <name>            # Log work (auto-commits)
+./bin/accomplish sync-project <name>           # Pull teammate updates
+./bin/accomplish team-status <name> [days]     # Show team activity
+./bin/accomplish list-embedded-projects        # List all embedded projects
+```
+
+## Collaborative Projects
+
+Work on shared projects with teammates using embedded git repositories. Each embedded project has its own git history and allows async collaboration.
+
+### Setup a Collaborative Project
+
+1. **Clone an existing collaborative project:**
+   ```bash
+   ./bin/accomplish clone-project git@github.com:team/project.git project-name
+   ```
+   This will prompt you for your username and set up your identity.
+
+2. **Or manually set up:**
+   ```bash
+   cd embedded/project-name
+   echo "your-username" > .me
+   mkdir -p daily/your-username
+   ```
+
+### Daily Workflow for Collaborative Projects
+
+**Morning:**
+```bash
+# See what teammates did
+./bin/accomplish sync-project project-name
+./bin/accomplish team-status project-name
+```
+
+**End of Day:**
+```bash
+# Log your work (auto-commits and pushes)
+./bin/accomplish log-project project-name
+```
+
+### Embedded Project Structure
+
+Each collaborative project has:
+- **`daily/<username>/`** - Personal daily logs for each team member
+- **`team.json`** - Team configuration and member list
+- **`notes.md`** - Shared project notes
+- **`decisions.md`** - Architecture decision records
+- **`.me`** - Local identity file (gitignored)
+
+Daily logs use a simplified format focused on project work:
+```markdown
+# YYYY-MM-DD - Your Name
+
+## Completed
+- [x] What you finished
+
+## In Progress
+- [ ] What you're working on
+
+## Blockers
+None (or list blockers)
+
+## Notes
+- Context for teammates
 ```
 
 ## Claude Code Agents

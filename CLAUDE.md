@@ -12,6 +12,7 @@ This is a personal accomplishment tracking system for managing daily tasks, proj
 
 - **`daily/`** - Daily task files named `YYYY-MM-DD.md` with standardized format
 - **`projects/`** - Project tracking with `index.md` master list and individual project folders with `notes.md`
+- **`embedded/`** - Embedded git repositories for collaborative projects
 - **`team/`** - Team management files:
   - `daily-logs/` - Team daily logs (e.g., `january.md`)
   - `status-reports/` - Leadership and management status reports
@@ -75,6 +76,7 @@ The system supports day-specific project reviews (e.g., "Review Project Alpha" o
 The `bin/accomplish` bash script provides commands:
 
 ```bash
+# Personal tracking
 ./bin/accomplish new-day              # Create today's daily file with recurring tasks
 ./bin/accomplish add-task "Task"      # Add task to today's file
 ./bin/accomplish review-yesterday     # Display previous working day's file
@@ -83,6 +85,13 @@ The `bin/accomplish` bash script provides commands:
 ./bin/accomplish monthly-summary      # Create monthly review file
 ./bin/accomplish list-days [n]        # List last n daily files
 ./bin/accomplish open-project <name>  # Open/create project notes
+
+# Collaborative projects (embedded repos)
+./bin/accomplish clone-project <url> <name>    # Clone shared project repo
+./bin/accomplish log-project <name>            # Log today's work (auto-commits)
+./bin/accomplish sync-project <name>           # Pull teammate updates
+./bin/accomplish team-status <name> [days]     # Show team activity
+./bin/accomplish list-embedded-projects        # List all embedded projects
 ```
 
 ## Claude Code Agents
@@ -124,6 +133,96 @@ Status reports go in `team/status-reports/` with naming format:
 
 Reports summarize accomplishments, project updates, and team activities for the reporting period.
 
+### Collaborative Embedded Projects Workflow
+
+The system supports collaborative projects where multiple people work together asynchronously using embedded git repositories.
+
+#### Structure
+
+Collaborative projects live in `embedded/<project-name>/` with their own git repository:
+```
+embedded/
+├── <project-name>/
+│   ├── .git/                    # Separate git history
+│   ├── .me                      # Local identity file (gitignored)
+│   ├── team.json                # Team member list
+│   ├── README.md                # Project overview
+│   ├── daily/                   # Daily logs from all team members
+│   │   ├── <member1>/
+│   │   │   └── YYYY-MM-DD.md
+│   │   ├── <member2>/
+│   │   │   └── YYYY-MM-DD.md
+│   ├── notes.md                 # Shared project notes
+│   ├── decisions.md             # Architecture decision records
+│   └── milestones.md            # Project milestones
+```
+
+#### Daily Log Format (Embedded Projects)
+
+Each team member's daily log uses a simplified format focused on project work:
+```markdown
+# YYYY-MM-DD - Name
+
+## Completed
+- [x] Task completed today
+- [x] Another finished task
+
+## In Progress
+- [ ] Ongoing work (with % if helpful)
+
+## Blockers
+- Issues preventing progress
+- Or "None"
+
+## Notes
+- Meeting notes, ideas, questions
+- Context for teammates
+```
+
+#### Collaborative Workflow
+
+**Morning:**
+1. Sync project: `./bin/accomplish sync-project <name>`
+2. Check team activity: `./bin/accomplish team-status <name>`
+
+**During Day:**
+3. Work on project files
+4. Update shared docs (notes.md, decisions.md)
+
+**End of Day:**
+5. Log work: `./bin/accomplish log-project <name>` (auto-commits and pushes)
+
+#### Pointer Projects
+
+Embedded projects are referenced in personal `projects/index.md` with:
+- **Type:** Collaborative (embedded)
+- **Team Members:** List of collaborators
+- **Location:** Path to embedded repo
+- **Remote:** Git URL
+- **My Role:** Your role in the project
+
+This provides a personal view of your involvement while the embedded repo tracks team collaboration.
+
+#### Team Configuration
+
+Each embedded project has `team.json`:
+```json
+{
+  "project_name": "Project Name",
+  "members": [
+    {
+      "name": "username",
+      "display_name": "Display Name",
+      "role": "Role"
+    }
+  ],
+  "created": "YYYY-MM-DD",
+  "repository": "git@github.com:org/repo.git"
+}
+```
+
+Each team member creates `.me` file locally with their username to identify themselves.
+
 ## Key Concepts
 
 ### Task Carryover Logic
@@ -163,3 +262,4 @@ When helping the user:
 6. **Use ISO date format** (YYYY-MM-DD) everywhere
 7. **Preserve the prioritized task order** format when adding to daily files
 8. **Mark tasks completed** with `[x]` when user confirms completion
+9. **For embedded projects**: Use simplified daily log format, sync before planning, reference team activity
