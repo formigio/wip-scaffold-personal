@@ -15,7 +15,7 @@ DAILY_DIR="$ROOT_DIR/daily"
 PROJECTS_DIR="$ROOT_DIR/projects"
 REVIEWS_DIR="$ROOT_DIR/reviews"
 RECURRING_TASKS_FILE="$ROOT_DIR/recurring-tasks.md"
-SHARED_DIR="$ROOT_DIR/embedded"
+SHARED_DIR="$ROOT_DIR/shared"
 
 # Helper functions
 log_info() {
