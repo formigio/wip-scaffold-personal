@@ -100,7 +100,8 @@ The `bin/wip` bash script provides commands **for you to use**. Users interact w
 # Collaborative Team WIPs
 ./bin/wip clone-project <url> <name>    # Clone shared project repo
 ./bin/wip log-project <name>            # Log today's work (auto-commits)
-./bin/wip sync-project <name>           # Pull teammate updates
+./bin/wip sync-project <name>           # Pull teammate updates for one project
+./bin/wip sync-all-shared               # Sync all shared projects at once
 ./bin/wip team-status <name> [days]     # Show team activity
 ./bin/wip list-shared-projects          # List all shared WIPs
 ```

@@ -719,8 +719,8 @@ cmd_sync_all_shared() {
     fi
 }
 
-# Command: list-embedded-projects
-cmd_list_embedded_projects() {
+# Command: list-shared-projects
+cmd_list_shared_projects() {
     if [ ! -d "$SHARED_DIR" ]; then
         log_warning "No shared projects directory found"
         return
@@ -879,8 +879,12 @@ case "${1:-}" in
     team-status)
         cmd_team_status "$2" "$3"
         ;;
+    list-shared-projects)
+        cmd_list_shared_projects
+        ;;
     list-embedded-projects)
-        cmd_list_embedded_projects
+        # Legacy alias for backwards compatibility
+        cmd_list_shared_projects
         ;;
     clone-project)
         cmd_clone_project "$2" "$3"
@@ -906,7 +910,7 @@ case "${1:-}" in
         echo "  sync-project <name>          Sync with team (pull updates)"
         echo "  sync-all-shared              Sync all shared projects at once"
         echo "  team-status <name> [days]    Show recent team activity"
-        echo "  list-embedded-projects       List all shared projects"
+        echo "  list-shared-projects         List all shared projects"
         echo ""
         exit 1
         ;;
