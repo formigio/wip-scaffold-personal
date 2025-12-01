@@ -632,6 +632,93 @@ cmd_team_status() {
     done
 }
 
+# Command: sync-all-shared
+cmd_sync_all_shared() {
+    if [ ! -d "$SHARED_DIR" ]; then
+        log_warning "No shared projects directory found"
+        return
+    fi
+
+    log_info "Syncing all shared projects..."
+    echo ""
+
+    local found_any=false
+    local updated_count=0
+
+    for project_dir in "$SHARED_DIR"/*; do
+        if [ -d "$project_dir" ] && [ -d "$project_dir/.git" ]; then
+            found_any=true
+            local project=$(basename "$project_dir")
+
+            cd "$project_dir"
+
+            # Get project name from team.json if it exists
+            local display_name="$project"
+            if [ -f "team.json" ]; then
+                display_name=$(cat team.json | grep "project_name" | sed 's/.*"project_name": "\(.*\)".*/\1/')
+            fi
+
+            echo -e "${BLUE}$display_name${NC} (shared/$project)"
+
+            # Check if remote is configured
+            if ! git remote get-url origin &>/dev/null; then
+                log_warning "  No remote configured"
+                echo ""
+                continue
+            fi
+
+            # Fetch
+            git fetch origin 2>&1 | sed 's/^/  /'
+
+            # Get current branch
+            local current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+            # Check if behind remote
+            local behind=$(git rev-list HEAD..origin/$current_branch --count 2>/dev/null || echo "0")
+
+            if [ "$behind" -gt 0 ]; then
+                echo -e "  ${YELLOW}Pulling $behind commit(s)...${NC}"
+
+                # Show what's new
+                git log HEAD..origin/$current_branch --pretty=format:"    %C(yellow)%h%C(reset) - %C(cyan)%an%C(reset): %s" 2>/dev/null
+                echo ""
+
+                # Pull
+                if git pull origin $current_branch 2>&1 | sed 's/^/  /'; then
+                    log_success "  Updated successfully"
+                    updated_count=$((updated_count + 1))
+                else
+                    log_error "  Pull failed"
+                fi
+            else
+                log_success "  Already up to date"
+            fi
+
+            # Check if ahead of remote
+            local ahead=$(git rev-list origin/$current_branch..HEAD --count 2>/dev/null || echo "0")
+            if [ "$ahead" -gt 0 ]; then
+                log_warning "  You have $ahead unpushed commit(s)"
+            fi
+
+            echo ""
+        fi
+    done
+
+    if [ "$found_any" = false ]; then
+        log_warning "No shared projects found"
+        echo ""
+        echo "To create one:"
+        echo "  wip clone-project <git-url> <project-name>"
+    else
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        if [ "$updated_count" -gt 0 ]; then
+            log_success "Synced all projects - $updated_count updated"
+        else
+            log_success "All projects already up to date"
+        fi
+    fi
+}
+
 # Command: list-embedded-projects
 cmd_list_embedded_projects() {
     if [ ! -d "$SHARED_DIR" ]; then
@@ -786,6 +873,9 @@ case "${1:-}" in
     sync-project)
         cmd_sync_project "$2"
         ;;
+    sync-all-shared)
+        cmd_sync_all_shared
+        ;;
     team-status)
         cmd_team_status "$2" "$3"
         ;;
@@ -814,6 +904,7 @@ case "${1:-}" in
         echo "  clone-project <url> <name>   Clone a shared project repo"
         echo "  log-project <name>           Log today's work on a project"
         echo "  sync-project <name>          Sync with team (pull updates)"
+        echo "  sync-all-shared              Sync all shared projects at once"
         echo "  team-status <name> [days]    Show recent team activity"
         echo "  list-embedded-projects       List all shared projects"
         echo ""
