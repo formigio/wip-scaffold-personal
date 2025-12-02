@@ -232,6 +232,12 @@ cmd_review_projects() {
     while IFS= read -r line; do
         if [[ "$line" =~ ^##[[:space:]]+(.+)$ ]]; then
             current_project="${BASH_REMATCH[1]}"
+
+            # Stop parsing when we hit the templates section
+            if [[ "$current_project" == "Project Templates" ]]; then
+                break
+            fi
+
             current_status=""
             current_cadence=""
             current_last_reviewed=""
