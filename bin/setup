@@ -34,8 +34,16 @@ else
         REMOTE_URL=$(git -C "$SCAFFOLD_ROOT" remote get-url origin 2>/dev/null || echo "")
 
         if [[ "$REMOTE_URL" == *"wip-scaffold-personal"* ]]; then
-            echo "✅ Git already configured with scaffold remote"
-            echo "   You can pull updates and contribute improvements!"
+            echo "🔧 Disconnecting from scaffold repository..."
+            git -C "$SCAFFOLD_ROOT" remote remove origin
+            echo "✅ Removed scaffold remote - your personal WIP is now independent"
+            echo ""
+            echo "Your personal data will not be pushed to the scaffold repo."
+            echo ""
+            echo "To set up your own remote for backup:"
+            echo "  1. Create a new private GitHub repository"
+            echo "  2. Run: git remote add origin <your-repo-url>"
+            echo "  3. Run: git push -u origin main"
             echo ""
         else
             echo "✅ Git already initialized with custom remote"
@@ -49,10 +57,10 @@ else
 
         echo "✅ Git repository initialized!"
         echo ""
-        echo "To connect to the scaffold for updates and contributions:"
-        echo "  git remote add origin https://github.com/formigio/wip-scaffold-personal.git"
-        echo "  git branch -M main"
-        echo "  git fetch origin"
+        echo "To set up a remote for backup:"
+        echo "  1. Create a new private GitHub repository"
+        echo "  2. Run: git remote add origin <your-repo-url>"
+        echo "  3. Run: git push -u origin main"
         echo ""
     fi
 fi
@@ -72,8 +80,7 @@ echo ""
 echo "Note: The .me identity file will be created automatically when you"
 echo "      work with shared Team WIPs (it's gitignored)."
 echo ""
-echo "The scaffold remains connected to the upstream repo, so you can:"
-echo "- Pull updates: git pull origin main"
-echo "- Contribute improvements: Make changes, commit, and create a PR"
+echo "Your personal WIP is now independent from the scaffold."
+echo "Consider setting up a private git remote for backup!"
 echo ""
 echo "For help, see README.md or ask Claude Code!"

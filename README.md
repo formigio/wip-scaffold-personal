@@ -14,14 +14,28 @@ A simple, markdown-based system for tracking daily tasks, managing projects, and
 
 ## Quick Start
 
-### 1. Clone and Customize
+### 1. Clone and Set Up
 
 ```bash
-git clone <this-repo-url>
-cd personal-accomplishment-tracker
+# Clone the scaffold repository
+git clone https://github.com/formigio/wip-scaffold-personal.git my-wip
+cd my-wip
 
-# Make the CLI tool executable
-chmod +x bin/accomplish
+# Run setup to disconnect from scaffold and initialize
+./bin/setup
+
+# The setup script will:
+# - Remove the scaffold remote (your personal data stays private)
+# - Make bin/wip executable
+# - Guide you to set up your own private git remote (optional)
+```
+
+Your personal WIP is now independent. To back up to your own repository:
+
+```bash
+# Create a private GitHub repository, then:
+git remote add origin <your-private-repo-url>
+git push -u origin main
 ```
 
 ### 2. Customize Recurring Tasks
