@@ -1,0 +1,64 @@
+# Recommended Codex Configuration for Formigio WIP
+#
+# Add these settings to your ~/.codex/config.toml file
+# You can append them with: cat .codex-config.toml >> ~/.codex/config.toml
+# Or manually copy the settings you want
+
+# ============================================================
+# Formigio WIP Configuration
+# ============================================================
+
+# Use a stronger model for planning and complex tasks
+# Options: "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", etc.
+default_model = "gpt-4o"
+
+# Set approval mode based on your comfort level:
+# - "auto": Codex runs commands automatically (fastest, requires trust)
+# - "write": Codex can read freely but asks before writing/running commands
+# - "read": Codex asks before any file operations
+# - "ask": Codex asks before every tool use
+approval_mode = "write"
+
+# Recognize CLAUDE.md as a fallback instruction file
+# This allows both Claude Code and Codex to work with the same repo
+project_doc_fallback_filenames = ["CLAUDE.md"]
+
+# Increase instruction file size limit (default is 32 KiB)
+# WIP system has detailed instructions, so 64 KiB is recommended
+project_doc_max_bytes = 65536
+
+# Use medium reasoning effort for planning tasks
+# Options: "low", "medium", "high"
+# Higher reasoning = better planning but slower responses
+default_reasoning_effort = "medium"
+
+# ============================================================
+# Optional: Sandbox Configuration
+# ============================================================
+
+# If you want to restrict Codex to only operate in your WIP directory:
+# writable_roots = ["/Users/peter/my-wip"]
+
+# ============================================================
+# Optional: Git Configuration
+# ============================================================
+
+# Auto-approve git operations (since WIP system commits frequently)
+# auto_approve_git = true
+
+# ============================================================
+# Usage Instructions
+# ============================================================
+#
+# To apply these settings:
+#
+# Option 1 - Append to existing config:
+#   cat /Users/peter/my-wip/.codex-config.toml >> ~/.codex/config.toml
+#
+# Option 2 - Manual copy:
+#   Open ~/.codex/config.toml in an editor and copy the sections you want
+#
+# Option 3 - Start fresh (if no existing config):
+#   cp /Users/peter/my-wip/.codex-config.toml ~/.codex/config.toml
+#
+# After updating config, restart Codex for changes to take effect.
