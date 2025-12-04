@@ -229,7 +229,7 @@ Work on shared projects with teammates using embedded git repositories. Each emb
 
 Each collaborative project has:
 - **`daily/<username>/`** - Personal daily logs for each team member
-- **`team.json`** - Team configuration and member list
+- **`team.md`** - Team directory in markdown format
 - **`notes.md`** - Shared project notes
 - **`decisions.md`** - Architecture decision records
 - **`.me`** - Local identity file (gitignored)

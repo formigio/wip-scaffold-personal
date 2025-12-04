@@ -177,7 +177,7 @@ shared/
 ├── <project-name>/
 │   ├── .git/                    # Separate git history
 │   ├── .me                      # Local identity file (gitignored)
-│   ├── team.json                # Team member list
+│   ├── team.md                  # Team member directory (markdown format)
 │   ├── README.md                # Project overview
 │   ├── daily/                   # Daily logs from all team members
 │   │   ├── <member1>/
@@ -237,21 +237,31 @@ This provides a personal view of their involvement while the shared repo tracks 
 
 ### Team Configuration
 
-Each shared WIP has `team.json`:
-```json
-{
-  "project_name": "Project Name",
-  "members": [
-    {
-      "name": "username",
-      "display_name": "Display Name",
-      "role": "Role"
-    }
-  ],
-  "created": "YYYY-MM-DD",
-  "repository": "git@github.com:org/repo.git"
-}
+Each shared WIP has `team.md` - a markdown-formatted team directory:
+```markdown
+# Team Directory
+
+## Project Information
+
+**Project Name:** My Team Project
+**Description:** Brief project description
+**Created:** YYYY-MM-DD
+**Repository:** git@github.com:org/repo.git
+
+## Team Members
+
+### John Doe (@johndoe)
+**Role:** Developer
+**Email:** john@example.com
+**Joined:** YYYY-MM-DD
+**Notes:** Any relevant notes
 ```
+
+**Claude Code-First Design:** Using markdown instead of JSON enables:
+- Easy editing in any text editor
+- Natural reading and understanding
+- Claude can parse and update without structured data complexity
+- Human-friendly format for team roster
 
 Each team member creates `.me` file locally with their username to identify themselves.
 
