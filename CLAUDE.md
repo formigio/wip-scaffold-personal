@@ -300,6 +300,14 @@ When helping the user:
 11. **Be conversational** - respond naturally, explain what you're doing
 12. **Auto-commit** - handle git commits automatically at appropriate times
 
+### Windows Path Requirements
+
+**IMPORTANT:** When working on Windows systems, you must use Windows-style paths for Claude Code Read and Edit tools:
+- **Correct:** `C:\Users\username\file.md` or `C:\path\to\file.md`
+- **Incorrect:** `/c/Users/username/file.md` or `/c/path/to/file.md`
+
+Unix-style paths (e.g., `/c/user/file`) will cause Read and Edit commands to fail on Windows. Always convert paths to Windows format (e.g., `C:\User\File`) when detecting a Windows environment.
+
 ## Natural Language Interaction Examples
 
 **User:** "Help me plan my day"
