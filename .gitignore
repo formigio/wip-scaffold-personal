@@ -24,3 +24,9 @@ Thumbs.db
 # Personal/sensitive notes (uncomment if needed)
 # daily/private-*.md
 # projects/*/private-*.md
+
+# Embedded projects/repos (scaffold and other embedded git repos)
+embedded/
+
+# Shared collaborative projects (Team WIPs with separate git repos)
+shared/
