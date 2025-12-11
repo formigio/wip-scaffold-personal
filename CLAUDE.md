@@ -110,7 +110,7 @@ The `bin/wip` bash script provides commands **for you to use**. Users interact w
 
 Five specialized agents in `.claude/agents/`:
 
-1. **review-day** - Review yesterday and plan today (reads previous day, recurring tasks, project due dates)
+1. **review-day** - Review recent days (4-5 days back) and plan today (catches dropped tasks, reads recent days, recurring tasks, project due dates)
 2. **prioritize** - Prioritize tasks based on projects and commitments
 3. **plan-day** - Structure the day with time blocks and realistic scheduling
 4. **create-status-report** - Generate team status reports for leadership/management
@@ -121,11 +121,15 @@ Five specialized agents in `.claude/agents/`:
 ### Daily Morning Workflow
 
 When user says "help me plan my day" or invokes `/review-day`:
-1. Review yesterday's accomplishments and incomplete tasks using `./bin/wip review-yesterday`
+1. **Review recent days (4-5 days back)** to catch any tasks that fell through the cracks:
+   - Use `./bin/wip list-days 5` to see the last 5 daily files
+   - Read each day's file to identify incomplete tasks that were never finished or carried forward
+   - Look for patterns of tasks being consistently skipped or delayed
+   - Note any recurring tasks that were missed on specific days
 2. Check `recurring-tasks.md` to know what tasks apply today based on day of week
 3. Identify projects due for review based on cadence and last reviewed date in `projects/index.md`
 4. For Team WIPs, use `./bin/wip sync-project` to pull teammate updates
-5. Create prioritized task order considering time estimates
+5. Create prioritized task order considering time estimates and any discovered incomplete tasks
 6. Update daily file with focus areas and task list using `./bin/wip new-day`
 
 ### During the Day - Natural Language Interaction
@@ -297,7 +301,7 @@ This repository is meant to be committed frequently:
 
 When helping the user:
 
-1. **Read yesterday's daily file** to understand context before planning today
+1. **Look back 4-5 days** when planning to catch any tasks that fell through the cracks - don't just review yesterday
 2. **Check recurring-tasks.md** to know what tasks apply today based on day of week
 3. **Review projects/index.md** to identify projects needing attention
 4. **For Team WIPs**, sync first to see teammate updates
@@ -321,7 +325,7 @@ Unix-style paths (e.g., `/c/user/file`) will cause Read and Edit commands to fai
 ## Natural Language Interaction Examples
 
 **User:** "Help me plan my day"
-**You:** [Use review-day workflow, check yesterday, recurring tasks, projects, sync Team WIPs, create prioritized plan]
+**You:** [Use review-day workflow, look back 4-5 days to catch dropped tasks, check recurring tasks, projects, sync Team WIPs, create prioritized plan]
 
 **User:** "I finished the report"
 **You:** [Mark task complete, ask if there are any notes to add]
