@@ -8,6 +8,7 @@ Copy and paste this prompt into Claude Code:
 
 ```
 Update from github.com/formigio/wip-scaffold-personal:
+- Update bin/wip CLI tool (team collaboration features)
 - Review and apply improvements to review-day agent (better task tracking)
 - Update prioritize, plan-day, and note-organizer agents
 - Check CLAUDE.md for workflow improvements
@@ -39,19 +40,21 @@ cp /tmp/wip-scaffold-personal/.claude/agents/review-day.md .claude/agents/
 cp /tmp/wip-scaffold-personal/.claude/agents/prioritize.md .claude/agents/
 cp /tmp/wip-scaffold-personal/.claude/agents/plan-day.md .claude/agents/
 cp /tmp/wip-scaffold-personal/.claude/agents/note-organizer.md .claude/agents/
+cp /tmp/wip-scaffold-personal/bin/wip bin/wip
 
 # 4. For customized files, compare and merge manually:
 diff -u .claude/agents/create-status-report.md /tmp/wip-scaffold-personal/.claude/agents/create-status-report.md
 # Copy workflow improvements but keep your team names
 
 # 5. Commit
-git add .claude/agents/
-git commit -m "Update agents from scaffold"
+git add .claude/agents/ bin/wip
+git commit -m "Update agents and CLI from scaffold"
 ```
 
 ## What Gets Updated vs. Preserved
 
 **Always safe to update:**
+- `bin/wip` - CLI tool with team collaboration features
 - `.claude/agents/review-day.md` - Planning and task tracking logic
 - `.claude/agents/prioritize.md` - Prioritization logic
 - `.claude/agents/plan-day.md` - Time blocking logic
@@ -60,7 +63,6 @@ git commit -m "Update agents from scaffold"
 **Review before updating (may have your customizations):**
 - `.claude/agents/create-status-report.md` - Has your team member names
 - `CLAUDE.md` - Has your project/team examples
-- `bin/wip` - May have custom scripts
 
 **Never overwrite (your personal data):**
 - `daily/*.md` - Your daily files
@@ -70,6 +72,20 @@ git commit -m "Update agents from scaffold"
 - `shared/` - Your shared projects
 
 ## Recent Updates
+
+### December 2025: Team Collaboration Features
+**Files:** `bin/wip`
+**New Commands:**
+- `team-log <project> <task>` - Post structured work entry with estimates and challenges
+- `add-request <project> <member> <task>` - Create todo for team member
+- `sync-requests <project>` - Pull team requests into personal daily
+
+**Improvements:**
+- Auto-detect git config when cloning projects
+- Offer to add user to team.md automatically
+- Enhanced display name extraction from team.md
+
+**Impact:** Full async team coordination - request tasks from teammates, track work with estimates, sync requests into your daily file.
 
 ### December 2025: Enhanced Task Tracking
 **Files:** `review-day.md`, `CLAUDE.md`

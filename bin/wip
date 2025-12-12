@@ -34,6 +34,47 @@ log_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
+# Get team member display name from team.md
+get_display_name() {
+    local project_dir="$1"
+    local username="$2"
+    local team_file="$project_dir/team.md"
+
+    if [ ! -f "$team_file" ]; then
+        echo "$username"
+        return
+    fi
+
+    # Look for pattern: ### Name (@username)
+    local display_name=$(grep "^### .* (@$username)" "$team_file" | sed 's/^### \(.*\) (@.*/\1/')
+
+    if [ -z "$display_name" ]; then
+        echo "$username"
+    else
+        echo "$display_name"
+    fi
+}
+
+# Get project name from team.md
+get_project_name() {
+    local project_dir="$1"
+    local team_file="$project_dir/team.md"
+
+    if [ ! -f "$team_file" ]; then
+        basename "$project_dir"
+        return
+    fi
+
+    # Look for: **Project Name:** value
+    local project_name=$(grep "^\*\*Project Name:\*\*" "$team_file" | sed 's/^\*\*Project Name:\*\* //')
+
+    if [ -z "$project_name" ]; then
+        basename "$project_dir"
+    else
+        echo "$project_name"
+    fi
+}
+
 # Get date in various formats
 get_date() {
     date +%Y-%m-%d
@@ -232,12 +273,6 @@ cmd_review_projects() {
     while IFS= read -r line; do
         if [[ "$line" =~ ^##[[:space:]]+(.+)$ ]]; then
             current_project="${BASH_REMATCH[1]}"
-
-            # Stop parsing when we hit the templates section
-            if [[ "$current_project" == "Project Templates" ]]; then
-                break
-            fi
-
             current_status=""
             current_cadence=""
             current_last_reviewed=""
@@ -420,13 +455,13 @@ EOF
     fi
 }
 
-# Command: log-project (collaborative shared projects)
+# Command: log-project (collaborative shared projects - simple format)
 cmd_log_project() {
     local project="$1"
 
     if [ -z "$project" ]; then
         log_error "Please provide a project name"
-        echo "Usage: wip log-project <project-name> [message]"
+        echo "Usage: wip log-project <project-name>"
         exit 1
     fi
 
@@ -455,7 +490,6 @@ cmd_log_project() {
     # Check if file exists
     if [ ! -f "$daily_file" ]; then
         # Create new daily log
-        # Get display name from team.md
         local display_name=$(get_display_name "$project_dir" "$username")
         cat > "$daily_file" << EOF
 # $today - $display_name
@@ -496,6 +530,246 @@ EOF
     else
         log_info "No changes to commit"
     fi
+}
+
+# Command: team-log (post structured work entry)
+cmd_team_log() {
+    local project="$1"
+    local task_summary="$2"
+
+    if [ -z "$project" ] || [ -z "$task_summary" ]; then
+        log_error "Please provide project name and task summary"
+        echo "Usage: wip team-log <project-name> <task-summary>"
+        echo ""
+        echo "Example: wip team-log myproject \"TTC-123: User authentication\""
+        echo ""
+        echo "You'll be prompted for:"
+        echo "  - Remaining estimate (e.g., '2 days', '4 hours')"
+        echo "  - Focus/Notes"
+        echo "  - Challenges/Learnings (optional)"
+        exit 1
+    fi
+
+    local project_dir="$SHARED_DIR/$project"
+
+    if [ ! -d "$project_dir" ]; then
+        log_error "Shared project not found: $project_dir"
+        exit 1
+    fi
+
+    # Get user identity
+    local me_file="$project_dir/.me"
+    if [ ! -f "$me_file" ]; then
+        log_error "Identity file not found. Please create $me_file with your name"
+        exit 1
+    fi
+
+    local username=$(cat "$me_file")
+    local display_name=$(get_display_name "$project_dir" "$username")
+    local today=$(get_date)
+    local daily_dir="$project_dir/daily/$username"
+    local daily_file="$daily_dir/$today.md"
+
+    # Create daily directory if it doesn't exist
+    mkdir -p "$daily_dir"
+
+    # Check if file exists, create header if not
+    if [ ! -f "$daily_file" ]; then
+        cat > "$daily_file" << EOF
+# $today - $display_name
+
+EOF
+    fi
+
+    # Prompt for details
+    echo ""
+    echo "Adding work entry for: $task_summary"
+    echo ""
+
+    read -p "Remaining Estimate (e.g., '2 days', '4 hours'): " estimate
+    echo ""
+    echo "Focus/Notes (press Enter when done, Ctrl+D to finish):"
+    focus=$(cat)
+    echo ""
+    read -p "Challenges/Learnings (press Enter to skip): " challenges
+
+    # Build the entry
+    local entry="## [$project] - $task_summary\n"
+    entry="${entry}- **Remaining Estimate:** $estimate\n"
+    entry="${entry}- **Focus/Notes:** $focus\n"
+
+    if [ -n "$challenges" ]; then
+        entry="${entry}- **Challenges/Learnings:** $challenges\n"
+    fi
+
+    entry="${entry}\n"
+
+    # Append to file
+    echo -e "$entry" >> "$daily_file"
+
+    log_success "Work entry added to $daily_file"
+
+    # Auto-commit
+    cd "$project_dir"
+    log_info "Committing changes..."
+    git add "$daily_file"
+    git commit -m "$username: Work log - $task_summary" -m "$(cat <<'EOF'
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+
+    # Push if remote is configured
+    if git remote get-url origin &>/dev/null; then
+        log_info "Pushing to remote..."
+        git push origin main 2>&1 || log_warning "Push failed - you may need to pull first or set up remote"
+    else
+        log_warning "No remote configured - commit saved locally"
+    fi
+
+    log_success "Team log updated and pushed"
+}
+
+# Command: add-request (create todo for team member)
+cmd_add_request() {
+    local project="$1"
+    local target_member="$2"
+    local task="$3"
+
+    if [ -z "$project" ] || [ -z "$target_member" ] || [ -z "$task" ]; then
+        log_error "Please provide project name, target member, and task"
+        echo "Usage: wip add-request <project-name> <member> <task>"
+        echo ""
+        echo "Example: wip add-request myproject john \"Review PR #123\""
+        exit 1
+    fi
+
+    local project_dir="$SHARED_DIR/$project"
+
+    if [ ! -d "$project_dir" ]; then
+        log_error "Shared project not found: $project_dir"
+        exit 1
+    fi
+
+    # Get user identity
+    local me_file="$project_dir/.me"
+    if [ ! -f "$me_file" ]; then
+        log_error "Identity file not found. Please create $me_file with your name"
+        exit 1
+    fi
+
+    local username=$(cat "$me_file")
+    local requests_dir="$project_dir/requests"
+    local request_file="$requests_dir/$target_member.md"
+
+    # Create requests directory if it doesn't exist
+    mkdir -p "$requests_dir"
+
+    # Add request with timestamp and requester
+    local today=$(get_date)
+
+    if [ ! -f "$request_file" ]; then
+        echo "# Requests for $target_member" > "$request_file"
+        echo "" >> "$request_file"
+    fi
+
+    echo "- [ ] [$today] **From $username:** $task" >> "$request_file"
+
+    log_success "Request added for $target_member"
+
+    # Auto-commit
+    cd "$project_dir"
+    log_info "Committing changes..."
+    git add "$request_file"
+    git commit -m "$username: Added request for $target_member" -m "$(cat <<'EOF'
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+
+    # Push if remote is configured
+    if git remote get-url origin &>/dev/null; then
+        log_info "Pushing to remote..."
+        git push origin main 2>&1 || log_warning "Push failed - you may need to pull first or set up remote"
+    else
+        log_warning "No remote configured - commit saved locally"
+    fi
+
+    log_success "Request committed and pushed"
+}
+
+# Command: sync-requests (pull team requests into personal daily)
+cmd_sync_requests() {
+    local project="$1"
+
+    if [ -z "$project" ]; then
+        log_error "Please provide project name"
+        echo "Usage: wip sync-requests <project-name>"
+        exit 1
+    fi
+
+    local project_dir="$SHARED_DIR/$project"
+
+    if [ ! -d "$project_dir" ]; then
+        log_error "Shared project not found: $project_dir"
+        exit 1
+    fi
+
+    # First sync the project to get latest requests
+    log_info "Syncing project to get latest requests..."
+    cmd_sync_project "$project"
+
+    # Get user identity
+    local me_file="$project_dir/.me"
+    if [ ! -f "$me_file" ]; then
+        log_error "Identity file not found. Please create $me_file with your name"
+        exit 1
+    fi
+
+    local username=$(cat "$me_file")
+    local request_file="$project_dir/requests/$username.md"
+
+    if [ ! -f "$request_file" ]; then
+        log_info "No requests found for you"
+        return
+    fi
+
+    # Extract pending requests
+    local pending_requests=$(grep "^- \[ \]" "$request_file" || echo "")
+
+    if [ -z "$pending_requests" ]; then
+        log_info "No pending requests found"
+        return
+    fi
+
+    # Add to today's personal daily file
+    local today=$(get_date)
+    local personal_daily="$DAILY_DIR/$today.md"
+
+    if [ ! -f "$personal_daily" ]; then
+        log_error "Today's personal daily file doesn't exist. Run 'wip new-day' first."
+        exit 1
+    fi
+
+    # Check if we've already added a Team Requests section
+    if grep -q "### Team Requests - $project" "$personal_daily"; then
+        log_warning "Team requests from $project already synced today"
+        return
+    fi
+
+    # Add section with requests
+    echo "" >> "$personal_daily"
+    echo "### Team Requests - $project" >> "$personal_daily"
+    echo "$pending_requests" >> "$personal_daily"
+
+    local count=$(echo "$pending_requests" | wc -l | tr -d ' ')
+    log_success "Added $count request(s) from $project to today's tasks"
+
+    echo ""
+    echo "Requests:"
+    echo "$pending_requests"
 }
 
 # Command: sync-project
@@ -588,9 +862,8 @@ cmd_team_status() {
     fi
 
     echo ""
-    # Get project name from team.md
-    local project_display_name=$(get_project_name "$project_dir")
-    echo "$project_display_name - Last $days days of activity:"
+    local project_name=$(get_project_name "$project_dir")
+    echo "$project_name - Last $days days of activity:"
     echo ""
 
     # Get list of dates to check (last N days)
@@ -805,16 +1078,126 @@ cmd_clone_project() {
     if git clone "$git_url" "$project_dir"; then
         log_success "Project cloned to: $project_dir"
 
-        # Ask for user identity
+        cd "$project_dir"
+
+        # Get user info from git config
+        local git_name=$(git config user.name)
+        local git_email=$(git config user.email)
+
+        # Generate username from email (part before @) or name
+        local suggested_username=""
+        if [ -n "$git_email" ]; then
+            suggested_username=$(echo "$git_email" | cut -d@ -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')
+        elif [ -n "$git_name" ]; then
+            suggested_username=$(echo "$git_name" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')
+        fi
+
+        # Ask for user identity with suggestion
         echo ""
-        echo "What is your username for this project?"
-        read -p "Username: " username
+        if [ -n "$suggested_username" ]; then
+            echo "Detected from git config:"
+            echo "  Name: $git_name"
+            echo "  Email: $git_email"
+            echo ""
+            read -p "Username for this project [$suggested_username]: " username
+            username=${username:-$suggested_username}
+        else
+            echo "What is your username for this project?"
+            read -p "Username: " username
+        fi
 
         echo "$username" > "$project_dir/.me"
         log_success "Identity saved: $username"
 
+        # Check if user exists in team.md
+        local team_file="$project_dir/team.md"
+        local user_exists=false
+
+        if [ -f "$team_file" ]; then
+            if grep -q "^### .* (@$username)" "$team_file"; then
+                user_exists=true
+                log_success "Found your entry in team.md"
+            fi
+        fi
+
+        # If user doesn't exist in team.md, offer to add them
+        if [ "$user_exists" = false ] && [ -f "$team_file" ]; then
+            echo ""
+            log_warning "You're not in team.md yet. Would you like to add yourself?"
+            read -p "Add to team.md? [Y/n]: " add_to_team
+            add_to_team=${add_to_team:-Y}
+
+            if [[ "$add_to_team" =~ ^[Yy] ]]; then
+                # Get additional info
+                read -p "Your full name [$git_name]: " full_name
+                full_name=${full_name:-$git_name}
+
+                read -p "Your role (e.g., Developer, Designer): " role
+                role=${role:-Developer}
+
+                read -p "Your email [$git_email]: " email
+                email=${email:-$git_email}
+
+                # Find the line with "<!-- Add additional team members as they join -->"
+                local today=$(get_date)
+                local new_member="### $full_name (@$username)
+**Role:** $role
+**Email:** $email
+**Joined:** $today
+**Notes:**
+
+---
+
+<!-- Add additional team members as they join -->"
+
+                # Replace the comment line with the new member and restore the comment
+                if grep -q "<!-- Add additional team members as they join -->" "$team_file"; then
+                    # Use a temporary file for the replacement
+                    awk -v member="$new_member" '
+                    /<!-- Add additional team members as they join -->/ {
+                        print member
+                        next
+                    }
+                    { print }
+                    ' "$team_file" > "$team_file.tmp" && mv "$team_file.tmp" "$team_file"
+
+                    log_success "Added you to team.md"
+
+                    # Commit the change
+                    git add "$team_file"
+                    if git diff --staged --quiet; then
+                        log_info "No changes to commit"
+                    else
+                        git commit -m "Add $full_name (@$username) to team
+
+Auto-registered via clone-project command.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+                        # Try to push
+                        if git remote get-url origin &>/dev/null; then
+                            log_info "Pushing to remote..."
+                            if git push origin main 2>&1; then
+                                log_success "Team roster updated on GitHub!"
+                            else
+                                log_warning "Push failed - you may need to pull first"
+                                echo "Run: cd $project_dir && git pull && git push"
+                            fi
+                        fi
+                    fi
+                else
+                    log_warning "Could not find team member insertion point in team.md"
+                    echo "Please add yourself manually to team.md"
+                fi
+            fi
+        fi
+
         # Create daily directory for this user
         mkdir -p "$project_dir/daily/$username"
+
+        cd "$ROOT_DIR"
 
         # Add to projects/index.md
         local projects_index="$PROJECTS_DIR/index.md"
@@ -874,6 +1257,15 @@ case "${1:-}" in
     log-project)
         cmd_log_project "$2"
         ;;
+    team-log)
+        cmd_team_log "$2" "$3"
+        ;;
+    add-request)
+        cmd_add_request "$2" "$3" "$4"
+        ;;
+    sync-requests)
+        cmd_sync_requests "$2"
+        ;;
     sync-project)
         cmd_sync_project "$2"
         ;;
@@ -898,7 +1290,7 @@ case "${1:-}" in
         echo ""
         echo "Usage: wip <command> [options]"
         echo ""
-        echo "Commands:"
+        echo "Personal Commands:"
         echo "  new-day                      Create today's daily file"
         echo "  add-task <task>              Add a task to today's list"
         echo "  review-yesterday             Review the previous working day"
@@ -908,11 +1300,14 @@ case "${1:-}" in
         echo "  list-days [n]                List last n daily files (default: 7)"
         echo "  open-project <name>          Open/create project notes"
         echo ""
-        echo "Collaborative Projects:"
+        echo "Team Collaboration:"
         echo "  clone-project <url> <name>   Clone a shared project repo"
-        echo "  log-project <name>           Log today's work on a project"
+        echo "  log-project <name>           Log today's work (simple format)"
+        echo "  team-log <name> <task>       Post structured work entry"
         echo "  sync-project <name>          Sync with team (pull updates)"
         echo "  sync-all-shared              Sync all shared projects at once"
+        echo "  sync-requests <name>         Pull team requests into personal daily"
+        echo "  add-request <proj> <mem> <t> Create todo for team member"
         echo "  team-status <name> [days]    Show recent team activity"
         echo "  list-shared-projects         List all shared projects"
         echo ""
