@@ -99,9 +99,12 @@ The `bin/wip` bash script provides commands **for you to use**. Users interact w
 
 # Collaborative Team WIPs
 ./bin/wip clone-project <url> <name>    # Clone shared project repo
-./bin/wip log-project <name>            # Log today's work (auto-commits)
+./bin/wip log-project <name>            # Log today's work (simple format, auto-commits)
+./bin/wip team-log <name> <task>        # Post structured work entry with estimates
 ./bin/wip sync-project <name>           # Pull teammate updates for one project
 ./bin/wip sync-all-shared               # Sync all shared projects at once
+./bin/wip sync-requests <name>          # Pull team requests into personal daily
+./bin/wip add-request <proj> <mem> <t>  # Create todo for team member
 ./bin/wip team-status <name> [days]     # Show team activity
 ./bin/wip list-shared-projects          # List all shared WIPs
 ```
@@ -124,13 +127,20 @@ When user says "help me plan my day" or invokes `/review-day`:
 1. **Review recent days (4-5 days back)** to catch any tasks that fell through the cracks:
    - Use `./bin/wip list-days 5` to see the last 5 daily files
    - Read each day's file to identify incomplete tasks that were never finished or carried forward
+   - **CRITICAL:** For EACH incomplete task on EACH day, verify it either:
+     - Appears as completed `[x]` in a later day, OR
+     - Appears as incomplete `[ ]` in a later day (was carried forward), OR
+     - Flag as DROPPED if it never appears again
+   - Track dropped tasks with the date they disappeared and days elapsed
+   - Pay special attention to Team Requests (commitments to teammates) - these MUST NOT be dropped
    - Look for patterns of tasks being consistently skipped or delayed
    - Note any recurring tasks that were missed on specific days
 2. Check `recurring-tasks.md` to know what tasks apply today based on day of week
 3. Identify projects due for review based on cadence and last reviewed date in `projects/index.md`
 4. For Team WIPs, use `./bin/wip sync-project` to pull teammate updates
 5. Create prioritized task order considering time estimates and any discovered incomplete tasks
-6. Update daily file with focus areas and task list using `./bin/wip new-day`
+6. **Add all dropped tasks to today's daily file** - they must be explicitly re-added or addressed
+7. Update daily file with focus areas and task list using `./bin/wip new-day`
 
 ### During the Day - Natural Language Interaction
 
@@ -181,7 +191,7 @@ shared/
 ├── <project-name>/
 │   ├── .git/                    # Separate git history
 │   ├── .me                      # Local identity file (gitignored)
-│   ├── team.md                  # Team member directory (markdown format)
+│   ├── team.json                # Team member list
 │   ├── README.md                # Project overview
 │   ├── daily/                   # Daily logs from all team members
 │   │   ├── <member1>/
@@ -241,7 +251,111 @@ This provides a personal view of their involvement while the shared repo tracks 
 
 ### Team Configuration
 
-Each shared WIP has `team.md` - a markdown-formatted team directory:
+Each shared WIP has `team.md`:
+```markdown
+# Team Directory
+
+## Project Information
+
+**Project Name:** Project Name
+**Description:** Brief project description
+**Created:** YYYY-MM-DD
+**Repository:** git@github.com:org/repo.git
+
+## Team Members
+
+### Display Name (@username)
+**Role:** Role/Title
+**Email:** user@example.com
+**Joined:** YYYY-MM-DD
+```
+
+The system extracts display names by looking for `### Name (@username)` patterns.
+Each team member creates `.me` file locally with their username to identify themselves.
+
+## Enhanced Team Collaboration Features
+
+The system includes advanced features for structured team work tracking and cross-team task management.
+
+### Structured Work Logging with `team-log`
+
+For detailed project work tracking, use `team-log` which creates structured entries:
+
+```bash
+./bin/wip team-log project-name "TTC-123: User authentication API"
+```
+
+This prompts for:
+- **Remaining Estimate:** Time estimate (e.g., "2 days", "4 hours")
+- **Focus/Notes:** What you're working on specifically
+- **Challenges/Learnings:** Blockers, new tech, longer-than-expected tasks
+
+Creates entries in this format:
+```markdown
+# YYYY-MM-DD - Display Name
+
+## [ProjectName] - TTC-123: User authentication API
+- **Remaining Estimate:** 2 days
+- **Focus/Notes:** Implementing JWT token validation and refresh logic. Working on
+  middleware to check token expiration.
+- **Challenges/Learnings:** Token refresh needs to handle race conditions when
+  multiple requests happen simultaneously.
+```
+
+**When to use:**
+- Team member working on specific tasks/tickets
+- Manager needs visibility into estimates and blockers
+- Project tracking requires detailed progress updates
+
+**Comparison with `log-project`:**
+- `log-project`: Simple format (Completed/In Progress/Blockers/Notes)
+- `team-log`: Structured format with task-level detail, estimates, and challenges
+
+### Request System (Cross-Team Todos)
+
+Team members can create tasks for each other that sync into personal daily files.
+
+**Creating a Request:**
+```bash
+./bin/wip add-request project-name johndoe "Review PR #123"
+```
+
+This creates/updates `shared/project-name/requests/johndoe.md`:
+```markdown
+# Requests for johndoe
+
+- [ ] [2025-12-03] **From janedoe:** Review PR #123
+- [ ] [2025-12-02] **From manager:** Update documentation
+```
+
+**Syncing Requests:**
+```bash
+./bin/wip sync-requests project-name
+```
+
+This pulls pending requests into the user's personal `daily/YYYY-MM-DD.md`:
+```markdown
+### Team Requests - project-name
+- [ ] [2025-12-03] **From janedoe:** Review PR #123
+- [ ] [2025-12-02] **From manager:** Update documentation
+```
+
+**Use Cases:**
+- Manager assigns tasks to team members
+- Team members request reviews/assistance from each other
+- Asynchronous task delegation without external tools
+- Integration with personal WIP for unified task tracking
+
+**Workflow:**
+1. Morning: User runs `sync-requests` to pull new requests into personal daily
+2. During day: User works on requests alongside regular tasks
+3. User marks requests complete in personal daily file
+4. (Optional) Sync completions back to team repo's requests file
+
+### Team Directory and Member Roster
+
+Each team WIP has `team.md` with complete member information in markdown format:
+
 ```markdown
 # Team Directory
 
@@ -267,7 +381,76 @@ Each shared WIP has `team.md` - a markdown-formatted team directory:
 - Claude can parse and update without structured data complexity
 - Human-friendly format for team roster
 
-Each team member creates `.me` file locally with their username to identify themselves.
+This roster enables:
+- Display names in daily logs (extracted from `### Name (@username)` pattern)
+- Role visibility for team coordination
+- Contact information for async communication
+- Project metadata and history
+
+### Enhanced Team Workflow
+
+**Morning Routine (Team Member):**
+1. `./bin/wip sync-project project-name` - Get latest team updates
+2. `./bin/wip team-status project-name` - See what team worked on
+3. `./bin/wip sync-requests project-name` - Pull tasks assigned to you
+4. Personal daily file now has: recurring tasks + personal tasks + team requests
+
+**During Day (Team Member):**
+```bash
+# Log detailed work with estimates
+./bin/wip team-log project-name "TTC-789: Feature implementation"
+# Prompted for: estimate, focus/notes, challenges
+
+# Request help from teammate
+./bin/wip add-request project-name janedoe "Review database schema design"
+```
+
+**Manager Oversight:**
+```bash
+# Check all team activity
+./bin/wip team-status project-name 7  # Last 7 days
+
+# Review specific member's logs
+cd shared/project-name/daily/johndoe
+cat 2025-12-03.md  # See detailed work log with estimates
+
+# Assign tasks to team
+./bin/wip add-request project-name johndoe "Prepare Q1 metrics"
+./bin/wip add-request project-name janedoe "Review architecture proposal"
+```
+
+**Key Benefits:**
+- **Estimates Tracking:** Remaining estimates visible in daily logs for capacity planning
+- **Blocker Visibility:** Challenges/learnings section highlights issues early
+- **Unified Task Management:** Team requests integrate with personal task system
+- **Async Coordination:** Request system enables task delegation without meetings
+- **Manager Visibility:** Structured logs provide clear progress tracking
+
+### Team WIP Scaffold
+
+New team projects use the `shared/wip-scaffold-team/` scaffold as a template:
+- `team.md` - Team member directory (markdown format)
+- `README.md` - Project overview and workflow guide
+- `TEAM-SETUP.md` - Complete setup and usage documentation
+- `QUICK-REFERENCE.md` - Command cheat sheet
+- `notes.md` - Shared notes template
+- `decisions.md` - Architecture decision records template
+- `milestones.md` - Project milestones tracking
+- `.gitignore` - Pre-configured (excludes `.me` file)
+
+**Creating a New Team WIP:**
+1. Copy scaffold directory: `cp -r shared/wip-scaffold-team /path/to/new-team-project`
+2. Customize `team.md` with your team members
+3. Initialize git and create remote repository
+4. Team members clone with `./bin/wip clone-project <url> <name>`
+
+**Scaffold Design Philosophy:**
+- Uses markdown (`team.md`) instead of JSON for Claude Code-first approach
+- Fully functional git repository ready to clone
+- All documentation included for self-service setup
+- Follows same pattern as `wip-scaffold-personal`
+
+See `shared/wip-scaffold-team/TEAM-SETUP.md` for complete setup guide.
 
 ## Key Concepts
 
@@ -301,18 +484,19 @@ This repository is meant to be committed frequently:
 
 When helping the user:
 
-1. **Look back 4-5 days** when planning to catch any tasks that fell through the cracks - don't just review yesterday
-2. **Check recurring-tasks.md** to know what tasks apply today based on day of week
-3. **Review projects/index.md** to identify projects needing attention
-4. **For Team WIPs**, sync first to see teammate updates
-5. **Follow the daily file format** consistently when creating or modifying files
-6. **Update "Last Reviewed" dates** in projects/index.md after project reviews
-7. **Use ISO date format** (YYYY-MM-DD) everywhere
-8. **Preserve the prioritized task order** format when adding to daily files
-9. **Mark tasks completed** with `[x]` when user confirms completion
-10. **Use CLI tools proactively** - you manage the system, not the user
-11. **Be conversational** - respond naturally, explain what you're doing
-12. **Auto-commit** - handle git commits automatically at appropriate times
+1. **NEVER drop tasks** - When planning the day, look back 4-5 days and track EVERY incomplete task to ensure it either completed, carried forward, or is explicitly flagged as dropped. Team Requests must NEVER be dropped.
+2. **Look back 4-5 days** when planning to catch any tasks that fell through the cracks - don't just review yesterday
+3. **Check recurring-tasks.md** to know what tasks apply today based on day of week
+4. **Review projects/index.md** to identify projects needing attention
+5. **For Team WIPs**, sync first to see teammate updates
+6. **Follow the daily file format** consistently when creating or modifying files
+7. **Update "Last Reviewed" dates** in projects/index.md after project reviews
+8. **Use ISO date format** (YYYY-MM-DD) everywhere
+9. **Preserve the prioritized task order** format when adding to daily files
+10. **Mark tasks completed** with `[x]` when user confirms completion
+11. **Use CLI tools proactively** - you manage the system, not the user
+12. **Be conversational** - respond naturally, explain what you're doing
+13. **Auto-commit** - handle git commits automatically at appropriate times
 
 ### Windows Path Requirements
 
@@ -325,19 +509,25 @@ Unix-style paths (e.g., `/c/user/file`) will cause Read and Edit commands to fai
 ## Natural Language Interaction Examples
 
 **User:** "Help me plan my day"
-**You:** [Use review-day workflow, look back 4-5 days to catch dropped tasks, check recurring tasks, projects, sync Team WIPs, create prioritized plan]
+**You:** [Use review-day workflow, look back 4-5 days to catch dropped tasks, check recurring tasks, projects, sync Team WIPs, sync requests, create prioritized plan]
 
 **User:** "I finished the report"
 **You:** [Mark task complete, ask if there are any notes to add]
 
 **User:** "What did the team work on?"
-**You:** [Use team-status command, summarize recent activity]
+**You:** [Use team-status command, summarize recent activity with estimates and blockers]
 
 **User:** "Add a note about the client meeting"
 **You:** [Add to Notes section, ask if they want to capture specific details]
 
+**User:** "I'm working on ticket TTC-456, the database refactor. I think it'll take 3 more days"
+**You:** [Use team-log to create structured entry with estimate, prompt for focus/notes and challenges]
+
+**User:** "Can you ask John to review my PR?"
+**You:** [Use add-request to create task for John in the team project]
+
 **User:** "I'm done for the day. Here's what I did: [list]"
-**You:** [Update daily file, create end-of-day summary, log to Team WIPs, commit to git]
+**You:** [Update daily file, create end-of-day summary, log to Team WIPs if relevant, commit to git]
 
 ## Remember
 
