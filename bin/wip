@@ -268,45 +268,98 @@ cmd_review_projects() {
     log_info "Checking projects due for review..."
     echo ""
 
+    # Function to check if current project is due
+    check_project_due() {
+        if [ -n "$current_project" ] && [ -n "$current_cadence" ] && [ -n "$current_last_reviewed" ]; then
+            # Skip day-specific reviews (handled by recurring tasks)
+            if [[ "$current_cadence" =~ weekly\ \( ]]; then
+                return
+            fi
+
+            # Calculate days difference properly using date command at midnight
+            # Linux: date -d supports arithmetic; macOS: use different approach
+            local days_diff=0
+            if date -d "2025-01-01" &>/dev/null; then
+                # GNU date (Linux)
+                local today_epoch=$(date -d "$today 00:00:00" +%s)
+                local last_epoch=$(date -d "$current_last_reviewed 00:00:00" +%s)
+                days_diff=$(( (today_epoch - last_epoch) / 86400 ))
+            else
+                # BSD date (macOS) - calculate using day-of-year
+                local today_year=$(echo "$today" | cut -d'-' -f1)
+                local last_year=$(echo "$current_last_reviewed" | cut -d'-' -f1)
+
+                if [ "$today_year" = "$last_year" ]; then
+                    # Same year - simple day-of-year subtraction
+                    local today_doy=$(date -j -f "%Y-%m-%d" "$today" +%j | sed 's/^0*//')
+                    local last_doy=$(date -j -f "%Y-%m-%d" "$current_last_reviewed" +%j | sed 's/^0*//')
+                    days_diff=$((today_doy - last_doy))
+                else
+                    # Different years - use epoch time but normalize to avoid time issues
+                    # This is approximate but good enough for review checks
+                    local today_epoch=$(date -j -f "%Y-%m-%d" "$today" +%s)
+                    local last_epoch=$(date -j -f "%Y-%m-%d" "$current_last_reviewed" +%s)
+                    days_diff=$(( (today_epoch - last_epoch) / 86400 ))
+                fi
+            fi
+
+            local due=false
+            case "$current_cadence" in
+                daily)
+                    [ $days_diff -ge 1 ] && due=true
+                    ;;
+                weekly)
+                    [ $days_diff -ge 7 ] && due=true
+                    ;;
+                monthly)
+                    [ $days_diff -ge 30 ] && due=true
+                    ;;
+            esac
+
+            if [ "$due" = true ]; then
+                echo -e "${YELLOW}○${NC} $current_project (Last reviewed: $current_last_reviewed, Cadence: $current_cadence)"
+                found_any=true
+            fi
+        fi
+    }
+
     # Parse and display projects due for review
     local found_any=false
+    local current_project=""
+    local current_cadence=""
+    local current_last_reviewed=""
+
     while IFS= read -r line; do
+        # Stop parsing when we hit the templates section
+        if [[ "$line" =~ ^##[[:space:]]+Project[[:space:]]+Templates ]]; then
+            # Check last project before breaking
+            check_project_due
+            break
+        fi
+
         if [[ "$line" =~ ^##[[:space:]]+(.+)$ ]]; then
+            # Check previous project before moving to next
+            check_project_due
+
+            # Start new project
             current_project="${BASH_REMATCH[1]}"
-            current_status=""
+            current_cadence=""
+            current_last_reviewed=""
+        elif [[ "$line" =~ ^###[[:space:]]+(.+)$ ]]; then
+            # Check main project before entering sub-project
+            check_project_due
+            # Clear review fields for sub-projects (they don't have their own review cadence)
             current_cadence=""
             current_last_reviewed=""
         elif [[ "$line" =~ ^-[[:space:]]+\*\*Review\ Cadence:\*\*[[:space:]]+(.+)$ ]]; then
             current_cadence="${BASH_REMATCH[1]}"
         elif [[ "$line" =~ ^-[[:space:]]+\*\*Last\ Reviewed:\*\*[[:space:]]+(.+)$ ]]; then
             current_last_reviewed="${BASH_REMATCH[1]}"
-        elif [[ "$line" =~ ^-[[:space:]]+\*\*Status:\*\*[[:space:]]+(.+)$ ]]; then
-            current_status="${BASH_REMATCH[1]}"
-
-            # Check if project is due for review
-            if [ -n "$current_cadence" ] && [ -n "$current_last_reviewed" ]; then
-                local days_diff=$(( ( $(date -d "$today" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$today" +%s) - $(date -d "$current_last_reviewed" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$current_last_reviewed" +%s) ) / 86400 ))
-
-                local due=false
-                case "$current_cadence" in
-                    daily)
-                        [ $days_diff -ge 1 ] && due=true
-                        ;;
-                    weekly)
-                        [ $days_diff -ge 7 ] && due=true
-                        ;;
-                    monthly)
-                        [ $days_diff -ge 30 ] && due=true
-                        ;;
-                esac
-
-                if [ "$due" = true ]; then
-                    echo -e "${YELLOW}○${NC} $current_project (Last reviewed: $current_last_reviewed, Cadence: $current_cadence)"
-                    found_any=true
-                fi
-            fi
         fi
     done < "$projects_file"
+
+    # Check final project
+    check_project_due
 
     if [ "$found_any" = false ]; then
         log_success "All projects are up to date!"
