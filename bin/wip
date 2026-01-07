@@ -111,17 +111,28 @@ get_month() {
 }
 
 get_day_of_week() {
-    date +%A
+    local target_date="${1:-}"
+    if [ -n "$target_date" ]; then
+        date -j -f "%Y-%m-%d" "$target_date" +%A 2>/dev/null || date -d "$target_date" +%A 2>/dev/null || date +%A
+    else
+        date +%A
+    fi
 }
 
 get_day_of_month() {
-    date +%d
+    local target_date="${1:-}"
+    if [ -n "$target_date" ]; then
+        date -j -f "%Y-%m-%d" "$target_date" +%d 2>/dev/null || date -d "$target_date" +%d 2>/dev/null || date +%d
+    else
+        date +%d
+    fi
 }
 
 # Get recurring tasks for a specific day
 get_recurring_tasks() {
-    local day_name=$(get_day_of_week)
-    local day_num=$(get_day_of_month)
+    local target_date="${1:-}"
+    local day_name=$(get_day_of_week "$target_date")
+    local day_num=$(get_day_of_month "$target_date")
     local tasks=""
 
     if [ ! -f "$RECURRING_TASKS_FILE" ]; then
@@ -172,16 +183,24 @@ get_recurring_tasks() {
 
 # Command: new-day
 cmd_new_day() {
-    local today=$(get_date)
-    local today_file="$DAILY_DIR/$today.md"
+    # Accept optional date parameter (YYYY-MM-DD format), default to today
+    local target_date="${1:-$(get_date)}"
+    local today_file="$DAILY_DIR/$target_date.md"
+
+    # Display current date/time for verification
+    log_info "Current local date/time: $(date '+%A, %B %d, %Y at %I:%M %p %Z')"
+    if [ -n "$1" ]; then
+        log_info "Creating file for: $target_date"
+    fi
+    echo ""
 
     if [ -f "$today_file" ]; then
-        log_warning "Today's file already exists: $today_file"
+        log_warning "File already exists for $target_date: $today_file"
         return
     fi
 
-    local readable_date=$(get_readable_date "$today")
-    local recurring_tasks=$(get_recurring_tasks)
+    local readable_date=$(get_readable_date "$target_date")
+    local recurring_tasks=$(get_recurring_tasks "$target_date")
 
     # Create the daily file with recurring tasks
     cat > "$today_file" << EOF
@@ -1281,10 +1300,130 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
     fi
 }
 
+# Command: my-tickets
+cmd_my_tickets() {
+    local jira_tools_dir="$SHARED_DIR/jira-tools"
+
+    if [ ! -d "$jira_tools_dir" ]; then
+        log_error "Jira tools not found at $jira_tools_dir"
+        exit 1
+    fi
+
+    # Check if .env file exists
+    if [ ! -f "$jira_tools_dir/.env" ]; then
+        log_error "Jira not configured. Please set up $jira_tools_dir/.env"
+        log_info "Copy .env.example to .env and add your Jira credentials"
+        exit 1
+    fi
+
+    # Check if node_modules exists
+    if [ ! -d "$jira_tools_dir/node_modules" ]; then
+        log_warning "Dependencies not installed. Installing..."
+        cd "$jira_tools_dir"
+        npm install
+        cd "$ROOT_DIR"
+    fi
+
+    # Run the my-tickets script with any additional arguments
+    cd "$jira_tools_dir"
+    node src/my-tickets.js "$@"
+    cd "$ROOT_DIR"
+}
+
+# Command: unassign-tickets
+cmd_unassign_tickets() {
+    local jira_tools_dir="$SHARED_DIR/jira-tools"
+
+    if [ ! -d "$jira_tools_dir" ]; then
+        log_error "Jira tools not found at $jira_tools_dir"
+        exit 1
+    fi
+
+    # Check if .env file exists
+    if [ ! -f "$jira_tools_dir/.env" ]; then
+        log_error "Jira not configured. Please set up $jira_tools_dir/.env"
+        log_info "Copy .env.example to .env and add your Jira credentials"
+        exit 1
+    fi
+
+    # Check if node_modules exists
+    if [ ! -d "$jira_tools_dir/node_modules" ]; then
+        log_warning "Dependencies not installed. Installing..."
+        cd "$jira_tools_dir"
+        npm install
+        cd "$ROOT_DIR"
+    fi
+
+    # Run the unassign-tickets script with any additional arguments
+    cd "$jira_tools_dir"
+    node src/unassign-tickets.js "$@"
+    cd "$ROOT_DIR"
+}
+
+# Command: comment-ticket
+cmd_comment_ticket() {
+    local jira_tools_dir="$SHARED_DIR/jira-tools"
+
+    if [ ! -d "$jira_tools_dir" ]; then
+        log_error "Jira tools not found at $jira_tools_dir"
+        exit 1
+    fi
+
+    # Check if .env file exists
+    if [ ! -f "$jira_tools_dir/.env" ]; then
+        log_error "Jira not configured. Please set up $jira_tools_dir/.env"
+        log_info "Copy .env.example to .env and add your Jira credentials"
+        exit 1
+    fi
+
+    # Check if node_modules exists
+    if [ ! -d "$jira_tools_dir/node_modules" ]; then
+        log_warning "Dependencies not installed. Installing..."
+        cd "$jira_tools_dir"
+        npm install
+        cd "$ROOT_DIR"
+    fi
+
+    # Run the comment-ticket script with any additional arguments
+    cd "$jira_tools_dir"
+    node src/comment-ticket.js "$@"
+    cd "$ROOT_DIR"
+}
+
+# Command: watched-updates
+cmd_watched_updates() {
+    local jira_tools_dir="$SHARED_DIR/jira-tools"
+
+    if [ ! -d "$jira_tools_dir" ]; then
+        log_error "Jira tools not found at $jira_tools_dir"
+        exit 1
+    fi
+
+    # Check if .env file exists
+    if [ ! -f "$jira_tools_dir/.env" ]; then
+        log_error "Jira not configured. Please set up $jira_tools_dir/.env"
+        log_info "Copy .env.example to .env and add your Jira credentials"
+        exit 1
+    fi
+
+    # Check if node_modules exists
+    if [ ! -d "$jira_tools_dir/node_modules" ]; then
+        log_warning "Dependencies not installed. Installing..."
+        cd "$jira_tools_dir"
+        npm install
+        cd "$ROOT_DIR"
+    fi
+
+    # Run the watched-updates script with any additional arguments
+    cd "$jira_tools_dir"
+    node src/watched-updates.js "$@"
+    cd "$ROOT_DIR"
+}
+
 # Main command dispatcher
 case "${1:-}" in
     new-day)
-        cmd_new_day
+        cmd_new_day "$2"
         ;;
     add-task)
         cmd_add_task "$2"
@@ -1306,6 +1445,22 @@ case "${1:-}" in
         ;;
     open-project)
         cmd_open_project "$2"
+        ;;
+    my-tickets)
+        shift  # Remove 'my-tickets' from arguments
+        cmd_my_tickets "$@"
+        ;;
+    unassign-tickets)
+        shift  # Remove 'unassign-tickets' from arguments
+        cmd_unassign_tickets "$@"
+        ;;
+    comment-ticket)
+        shift  # Remove 'comment-ticket' from arguments
+        cmd_comment_ticket "$@"
+        ;;
+    watched-updates)
+        shift  # Remove 'watched-updates' from arguments
+        cmd_watched_updates "$@"
         ;;
     log-project)
         cmd_log_project "$2"
@@ -1344,7 +1499,7 @@ case "${1:-}" in
         echo "Usage: wip <command> [options]"
         echo ""
         echo "Personal Commands:"
-        echo "  new-day                      Create today's daily file"
+        echo "  new-day [YYYY-MM-DD]         Create today's daily file (or specify future date)"
         echo "  add-task <task>              Add a task to today's list"
         echo "  review-yesterday             Review the previous working day"
         echo "  review-projects              Review projects due for review"
@@ -1352,6 +1507,10 @@ case "${1:-}" in
         echo "  monthly-summary              Create/open monthly summary"
         echo "  list-days [n]                List last n daily files (default: 7)"
         echo "  open-project <name>          Open/create project notes"
+        echo "  my-tickets [--format=...]    Fetch Jira tickets assigned to you"
+        echo "  unassign-tickets [options]   Unassign tickets (with filters)"
+        echo "  comment-ticket <key> <text>  Add comment to Jira ticket"
+        echo "  watched-updates [options]    Check watched ticket updates and mentions"
         echo ""
         echo "Team Collaboration:"
         echo "  clone-project <url> <name>   Clone a shared project repo"
