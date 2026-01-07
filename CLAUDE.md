@@ -452,6 +452,206 @@ New team projects use the `shared/wip-scaffold-team/` scaffold as a template:
 
 See `shared/wip-scaffold-team/TEAM-SETUP.md` for complete setup guide.
 
+## Workspaces (External Project Portfolios)
+
+A **Workspace** is a dedicated external folder for scoped work on a portfolio of related initiatives. Unlike Team WIPs (which live in `shared/`), Workspaces live outside the personal WIP repository entirely.
+
+### Personal WIP vs Workspace
+
+| Aspect | Personal WIP | Workspace |
+|--------|-------------|-----------|
+| **Purpose** | Day-to-day productivity | Scoped work on specific goals |
+| **Location** | `~/development/wip/` | External (e.g., `~/development/client-project/`) |
+| **Contains** | Daily files, project index, recurring tasks | Domain-specific repos, notes, tooling |
+| **Focus** | Personal task management | Technical execution and documentation |
+| **Git** | Single repo with shared WIPs | Parent repo with optional submodules |
+
+### When to Create a Workspace
+
+Create a workspace when:
+- Working with multiple related repositories (codebase, infrastructure, tooling)
+- Need domain-specific CLAUDE.md context for AI assistance
+- Want to keep technical notes and scripts separate from personal productivity
+- The work has its own portfolio of sub-projects or initiatives
+- Work involves specialized agents or tooling
+
+### Workspace Structure
+
+```
+~/development/<workspace>/
+├── .git/                    # Parent repository
+├── .gitmodules              # Submodule definitions (if using submodules)
+├── .gitignore               # Simple: just ignores local/
+├── CLAUDE.md                # Workspace-specific context for Claude
+├── notes/                   # Tracked documentation
+│   ├── YYYY-MM-DD-*.md      # Dated documentation
+│   ├── analysis/            # Technical analysis documents
+│   ├── communications/      # Emails, reports to stakeholders
+│   └── deliverables/        # Final deliverable documents
+├── local/                   # Untracked working files (gitignored)
+│   ├── pdfs/                # PDF outputs and drafts
+│   ├── docker/              # Local dev environments
+│   ├── *.sql                # Database dumps
+│   └── *.tar.gz             # Archives
+├── .claude/                 # Optional: workspace-specific agents
+│   └── agents/
+└── <submodule-n>/           # Related repositories (optional)
+```
+
+**Convention:** All untracked working files go in `local/`. This keeps .gitignore simple (just `local/`) and provides clear separation between tracked documentation and local working files like PDFs, database dumps, docker environments, raw data, etc.
+
+### Workspace CLAUDE.md
+
+Each workspace has its own CLAUDE.md that provides:
+- **Overview** of what the workspace represents
+- **Repository structure** explaining each submodule
+- **Access information** (SSH, AWS, credentials references)
+- **Architecture** diagrams and explanations
+- **Common tasks** and how to perform them
+- **Security/operational notes** relevant to the domain
+
+This allows Claude to have full context when working within that workspace without polluting personal WIP context.
+
+### Referencing Workspaces from Personal WIP
+
+Workspaces are tracked in `projects/index.md` with:
+- **Workspace Location:** Path to workspace (e.g., `~/development/client-project/`)
+- **Workspace Structure:** Brief tree showing submodules and key files
+- Standard project fields (Status, Review Cadence, Next Steps, etc.)
+
+Example:
+```markdown
+## Client Project - Infrastructure & Development
+- **Status:** Active
+- **Review Cadence:** daily
+- **Workspace Location:** `~/development/client-project/` (dedicated workspace)
+
+**Workspace Structure:**
+~/development/client-project/
+├── CLAUDE.md              # Infrastructure context for Claude
+├── notes/                 # Notes, documentation, communications
+├── local/                 # Untracked working files (gitignored)
+├── infrastructure/        # Infrastructure code (submodule)
+└── application/           # Application codebase (submodule)
+```
+
+### Workflow with Workspaces
+
+**From Personal WIP:**
+- Track high-level project status and next steps
+- Review cadence and last reviewed dates
+- Plan daily tasks related to the workspace
+
+**Within the Workspace:**
+- Open the workspace directory in Claude Code
+- Work with full domain context from workspace CLAUDE.md
+- Create technical documentation in `notes/`
+- Commit changes to submodules and parent repo
+
+### Creating a New Workspace
+
+1. Create directory: `mkdir ~/development/<name>`
+2. Initialize git: `git init`
+3. Create `.gitignore` with just `local/` (plus OS/editor files)
+4. Create `CLAUDE.md` with domain context
+5. Create `notes/` directory for tracked documentation
+6. Create `local/` directory for untracked working files
+7. Add submodules if needed: `git submodule add <url> <name>`
+8. Initial commit
+9. Add reference in personal WIP `projects/index.md`
+
+## Journeys (Multi-Step Initiatives)
+
+A **Journey** is a format for tracking multi-step initiatives that involve learning, planning, and iterative progress. Journeys are particularly useful in home/personal workspaces but can be used anywhere.
+
+### When to Use Journeys
+
+Use the Journey format when:
+- The path to completion isn't fully clear upfront
+- Learning and research are part of the process
+- The work spans multiple sessions or days
+- You need help getting "unstuck"
+- Physical execution is involved (home projects, purchases, installations)
+
+### Journey File Format
+
+```markdown
+# Journey: [Name]
+
+## Desired Outcome
+What does "done" look like? Paint the picture of success.
+
+## Why This Matters
+Personal motivation - why is this worth doing?
+
+## Goal Posts
+Milestones that represent meaningful progress:
+- [ ] Goal post 1 - a state, not a task
+- [ ] Goal post 2
+- [ ] Final destination
+
+## Current Position
+Where am I right now? What's known vs unknown?
+
+## Blockers & Uncertainties
+- Decisions not yet made
+- Information needed
+- Dependencies on others or external factors
+
+## Journal
+### YYYY-MM-DD
+Dated entries capturing:
+- Progress made
+- Things learned
+- Decisions made
+- Setbacks and pivots
+
+## Next Step
+THE one next action to move forward. This is the anti-stuck device.
+When uncertain, this should be the smallest possible action that creates clarity.
+```
+
+### Journey Lifecycle
+
+1. **Inception** - Capture the desired outcome and why it matters
+2. **Exploration** - Research, learn, gather information
+3. **Planning** - Define goal posts, identify blockers
+4. **Execution** - Work through goal posts, journal progress
+5. **Completion** - Celebrate, capture learnings, archive
+
+### Helping Users Get Unstuck
+
+When someone doesn't know what to do next:
+1. Review the Desired Outcome - is it still clear and motivating?
+2. Check Blockers & Uncertainties - is something unresolved holding them back?
+3. Suggest the smallest possible next action that creates clarity
+4. Sometimes "Next Step" is just "Think about X for 10 minutes" or "Ask [person] about Y"
+
+### Journeys in Workspaces
+
+Journeys work well in dedicated workspaces. A workspace with journeys might look like:
+
+```
+~/development/home/
+├── CLAUDE.md              # Workspace context
+├── journeys/              # Active and completed journeys
+│   ├── kitchen-remodel.md
+│   └── garage-organization.md
+├── notes/                 # Reference materials, measurements
+└── local/                 # Receipts, photos, PDFs
+```
+
+### Journey vs Project
+
+| Aspect | Journey | Project |
+|--------|---------|---------|
+| **Format** | Single markdown file | Entry in projects/index.md |
+| **Scope** | Specific initiative with clear end | Ongoing work or large effort |
+| **Tracking** | Goal posts, journal, next step | Status, review cadence, next steps |
+| **Best for** | Personal initiatives, home projects | Work projects, recurring responsibilities |
+
+Use Journeys for things with a clear "done" state. Use Projects for ongoing work or when you need integration with the WIP daily review system.
+
 ## Key Concepts
 
 ### Task Carryover Logic
