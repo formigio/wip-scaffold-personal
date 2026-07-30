@@ -8,14 +8,23 @@ Copy and paste this prompt into Claude Code:
 
 ```
 Update from github.com/formigio/wip-scaffold-personal:
-- Update bin/wip CLI tool (team collaboration features)
-- Review and apply improvements to review-day agent (better task tracking)
-- Update prioritize, plan-day, and note-organizer agents
-- Check CLAUDE.md for workflow improvements
+- Update bin/wip CLI tool (status.md-based review-projects, overdue reviews in new-day)
+- Add the backlog system: create backlog.md and adopt the backlog-centric daily/EOD workflow
+- Add the add-task agent (triage: today / future date / backlog)
+- Add journeys/ (_template.md + README.md) for multi-step initiatives
+- Migrate projects to the two-tier structure (slim index.md table + per-project status.md)
+- Update review-day, prioritize, plan-day agents (backlog-aware)
+- Check CLAUDE.md / AGENTS.md for workflow improvements
 - Preserve all my customizations (team names, projects, custom agents)
 
 Show me what changed and let me approve before applying.
 ```
+
+> **⚠️ Two-tier projects migration (required for `review-projects`):** the CLI now scans
+> per-project `projects/<name>/status.md` files. If your projects still live inline in a
+> single `projects/index.md`, `review-projects` will silently find nothing until you split
+> each project into its own `status.md` and slim `index.md` down to a summary table. Ask
+> Claude to migrate your existing projects to the two-tier layout.
 
 Claude will:
 1. Fetch the latest scaffold from GitHub
@@ -59,19 +68,35 @@ git commit -m "Update agents and CLI from scaffold"
 - `.claude/agents/prioritize.md` - Prioritization logic
 - `.claude/agents/plan-day.md` - Time blocking logic
 - `.claude/agents/note-organizer.md` - Note organization logic
+- `.claude/agents/add-task.md` - Task triage logic (new)
+- `journeys/_template.md`, `journeys/README.md` - Journey format (new)
 
 **Review before updating (may have your customizations):**
 - `.claude/agents/create-status-report.md` - Has your team member names
-- `CLAUDE.md` - Has your project/team examples
+- `CLAUDE.md` / `AGENTS.md` - Have your project/team examples
+- `backlog.md` - New file; safe to add, but review the categories to fit your work
+- `projects/` - Two-tier migration changes the layout (see the ⚠️ note above)
 
 **Never overwrite (your personal data):**
 - `daily/*.md` - Your daily files
-- `projects/index.md` - Your projects
+- `backlog.md` - Once you've populated it
+- `projects/index.md` and `projects/<name>/status.md` - Your projects
+- `journeys/*.md` - Your journeys (except `_template.md` / `README.md`)
 - `recurring-tasks.md` - Your specific tasks
 - `team/` - Your team data
 - `shared/` - Your shared projects
 
 ## Recent Updates
+
+### July 2026: Backlog, Two-Tier Projects, Journeys & Task Triage
+**Files:** `backlog.md` (new), `bin/wip`, `projects/` (restructured), `journeys/` (new), `.claude/agents/add-task.md` (new), `review-day.md`, `prioritize.md`, `plan-day.md`, `CLAUDE.md`, `AGENTS.md`, `.codex/prompts/`
+**New:**
+- **Backlog system** — `backlog.md` is the source of truth for all pending work; daily files hold only realistic commitments. Morning pulls from backlog; end-of-day returns incomplete items to it.
+- **Two-tier projects** — slim `projects/index.md` summary table + per-project `status.md` (full details) + optional `notes.md`. `review-projects` now scans `status.md` files and `new-day` surfaces reviews past cadence.
+- **Journeys** — `journeys/` for multi-step initiatives where the path isn't clear upfront (Goal Posts, Journal, Next Step).
+- **add-task agent** — triages new tasks to today, a future date, or the backlog.
+
+**Impact:** Nothing gets dropped (everything has a home in the backlog), project reviews scale without a bloated index, and exploratory work has a dedicated format. See the ⚠️ migration note above for the two-tier projects change.
 
 ### December 2025: Team Collaboration Features
 **Files:** `bin/wip`

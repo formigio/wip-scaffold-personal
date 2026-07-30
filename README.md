@@ -61,29 +61,47 @@ Edit `recurring-tasks.md` to define your regular tasks:
 
 This creates a daily file for today (e.g., `daily/2025-01-15.md`) with:
 - Today's date and day of week
-- Recurring tasks for today
-- Standard sections: Focus, Tasks, Notes, Summary
+- Recurring tasks for today (and any project reviews past cadence)
+- Standard sections: Today's Plan, Tasks, Notes, End of Day Summary
 
-### 4. Set Up Your Projects
+The daily file holds your **realistic commitments for today** — everything else lives in `backlog.md`.
 
-Edit `projects/index.md` to add your projects. Each project has:
-- **Status:** Active/Paused/Completed
-- **Review Cadence:** daily/weekly/monthly
-- **Last Reviewed:** Track when you last reviewed it
-- **Remaining Estimate:** Time estimate
-- **Next Steps:** Checkbox list of actionable items
+### 4. Capture Pending Work in the Backlog
 
-Example:
+`backlog.md` is the source of truth for all pending work — the "waiting room." Anything
+not scheduled for a specific day lives here until you pull it into a daily file. Categories
+include Decisions Needed, Team Communication, Technical Debt, Project-Specific, and
+Low Priority / Someday.
+
+**Daily files are commitments. Backlog is the waiting room.**
+
+### 5. Set Up Your Projects (Two-Tier)
+
+Projects use a two-tier structure:
+- **`projects/index.md`** — a slim summary table with a link to each project
+- **`projects/<name>/status.md`** — full details for one project
+- **`projects/<name>/notes.md`** — extended notes (optional)
+
+Add a row to `index.md` and create a `status.md` using this template:
 ```markdown
-## My Project
+# My Project
 - **Status:** Active
 - **Review Cadence:** weekly (Tuesday)
 - **Last Reviewed:** 2025-01-15
 - **Remaining Estimate:** 2 weeks
-- **Next Steps:**
-  - [ ] Complete design doc
-  - [ ] Schedule review meeting
+
+## Next Steps
+- [ ] Complete design doc
+- [ ] Schedule review meeting
 ```
+
+`./bin/wip review-projects` scans the `status.md` files to surface reviews past cadence.
+
+### 6. Track Multi-Step Initiatives as Journeys
+
+For work where the path isn't clear upfront (research, exploration, iterative progress),
+create a **Journey** in `journeys/` — copy `journeys/_template.md` to
+`journeys/YYYY-MM-DD-short-name.md`. See `journeys/README.md` for guidance.
 
 ## Directory Structure
 
@@ -91,12 +109,17 @@ Example:
 .
 ├── bin/
 │   └── wip           # CLI tool for common operations
+├── backlog.md               # Source of truth for all pending work
 ├── daily/                   # Daily task files (YYYY-MM-DD.md)
 ├── shared/                # Collaborative project repos (separate git histories)
 ├── projects/
-│   ├── index.md            # Master project list
-│   └── [project-name]/     # Individual project folders
-│       └── notes.md        # Detailed project notes
+│   ├── index.md            # Slim summary table (links to each status.md)
+│   └── [project-name]/
+│       ├── status.md       # Full project details (status, cadence, next steps)
+│       └── notes.md        # Extended notes (optional)
+├── journeys/                # Multi-step initiatives (one markdown file each)
+│   ├── _template.md
+│   └── README.md
 ├── team/
 │   ├── daily-logs/         # Team daily logs by month
 │   └── status-reports/     # Leadership status reports
@@ -112,9 +135,9 @@ Example:
 ## Daily Workflow
 
 ### Morning
-1. **Review yesterday** (manually or with Claude Code):
+1. **Review your backlog** to see the full picture of pending work:
    ```bash
-   ./bin/wip review-yesterday
+   # open backlog.md — decisions, behind-schedule reviews, communication owed
    ```
 
 2. **Check projects due for review**:
@@ -123,18 +146,20 @@ Example:
    ```
 
 3. **Plan your day** - Use Claude Code agents for help:
-   - `/review-day` - Review yesterday and plan today
-   - `/prioritize` - Prioritize tasks based on projects
+   - `/review-day` - Review backlog + recent days, plan today
+   - `/prioritize` - Prioritize tasks based on backlog and projects
    - `/plan-day` - Create time-blocked schedule
+   - `/add-task` - Add a task with triage (today / future date / backlog)
 
 ### During the Day
 - Check off tasks as completed: `- [x] Completed task`
 - Add notes as needed
-- Update project next steps in `projects/index.md`
+- Update project next steps in `projects/<name>/status.md`
 
 ### End of Day
 1. Mark completed tasks with `[x]`
-2. Add "End of Day Summary" section:
+2. Move any incomplete items back to `backlog.md` (unless carrying to tomorrow)
+3. Add "End of Day Summary" section:
    ```markdown
    ## End of Day Summary
 
@@ -142,8 +167,8 @@ Example:
    - ✅ Task 1
    - ✅ Task 2
 
-   ### Carried Forward
-   - [ ] Incomplete task (still relevant)
+   ### Returned to Backlog
+   - [ ] Incomplete task (moved back to backlog.md)
 
    ### Key Updates
    - Important project updates or notes
@@ -313,13 +338,16 @@ If you manage a team:
 - Name reports: `YYYY-MM-DD-to-YYYY-MM-DD-leadership.md`
 
 ### Create Project Folders
-For detailed projects, create a folder:
+For each project, create a folder with a `status.md` (and optional `notes.md`):
 ```bash
 mkdir -p projects/my-project
-touch projects/my-project/notes.md
+touch projects/my-project/status.md   # status, cadence, next steps, updates
+touch projects/my-project/notes.md    # optional extended notes
 ```
+Then add a row to `projects/index.md` linking to the new `status.md`.
 
-Use the notes file for:
+Use `status.md` for status, review cadence, next steps, and dated updates.
+Use `notes.md` for:
 - Meeting notes
 - Technical details
 - Research and references

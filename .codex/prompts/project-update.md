@@ -7,9 +7,9 @@ Help me update a project in the Formigio WIP system:
 
 ## Steps to Follow:
 
-1. **List Projects**: Show me the current projects from `projects/index.md`
+1. **List Projects**: Show me the current projects from the `projects/index.md` summary table
 2. **Select Project**: Ask which project I want to update
-3. **Show Current State**: Display the project's current:
+3. **Show Current State**: Read `projects/[project-name]/status.md` and display the project's current:
    - Status (Active/Paused/Completed)
    - Review Cadence
    - Last Reviewed date
@@ -22,9 +22,10 @@ Help me update a project in the Formigio WIP system:
    - Should the estimate be updated?
    - Any notes to add to the project's notes.md file?
 5. **Update Files**:
-   - Update `projects/index.md` with changes
-   - Update "Last Reviewed" date to today
-   - If there are notes, update `projects/[project-name]/notes.md`
+   - Update `projects/[project-name]/status.md` with the changes and today's "Last Reviewed" date
+   - Add a dated entry under "Recent Updates" in status.md
+   - Update the `projects/index.md` table row if status or cadence changed
+   - If there are extended notes, update `projects/[project-name]/notes.md`
 6. **Commit**: Create a git commit with message: "Update [project name]: [brief summary of changes]"
 
 ## Output Format:

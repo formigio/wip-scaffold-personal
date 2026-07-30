@@ -10,13 +10,14 @@ Help me close out my work day using the Formigio WIP system:
 1. **Review Today's File**: Read today's daily file at `daily/[today's date].md`
 2. **Ask for Accomplishments**: Ask me what I accomplished today
 3. **Update Tasks**: Mark completed tasks with `[x]` based on what I tell you
-4. **Create Summary**: Add an "End of Day Summary" section with:
+4. **Return Incomplete Items to Backlog**: Move any tasks that didn't get done back to `backlog.md` under the appropriate category (unless I'm explicitly carrying one to tomorrow)
+5. **Create Summary**: Add an "End of Day Summary" section with:
    - **Completed Today** (list with ✅ emoji)
-   - **Carried Forward** (incomplete tasks that are still relevant)
+   - **Returned to Backlog** (incomplete items that went back to backlog.md)
    - **Key Updates** (important notes or insights from today)
-5. **Update Team WIPs**: If I worked on any shared projects today, use `./bin/wip log-project <name>` to update my daily log
-6. **Commit Changes**: Create a git commit with message format: "Daily update: YYYY-MM-DD"
-7. **Push**: Push the changes to the remote repository
+6. **Update Team WIPs**: If I worked on any shared projects today, use `./bin/wip log-project <name>` to update my daily log
+7. **Commit Changes**: Create a git commit with message format: "Daily update: YYYY-MM-DD"
+8. **Push**: Push the changes to the remote repository
 
 ## Output Format:
 

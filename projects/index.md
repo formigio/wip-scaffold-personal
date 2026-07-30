@@ -1,63 +1,72 @@
 # Projects Overview
 
-## Example Project Alpha
-- **Status:** Active
-- **Review Cadence:** daily
-- **Last Reviewed:** 2025-01-15
-- **Remaining Estimate:** 2 weeks
-- **Next Steps:**
-  - [ ] Complete initial requirements gathering
-  - [ ] Create technical design document
-  - [ ] Review with stakeholders
+Quick reference to all projects. See each project's `status.md` for full details.
 
-### Sub-project: Phase 1 Implementation
-- **Status:** Active
-- **Remaining Estimate:** 1 week
-- **Next Steps:**
-  - [ ] Set up development environment
-  - [ ] Create initial prototype
+**Two-tier structure:** this index is a slim summary table; each project has its own
+folder with `status.md` (status, cadence, next steps, updates) and optional `notes.md`
+(extended history, meeting notes, technical detail). `./bin/wip review-projects` scans
+the `status.md` files to find reviews that are past cadence.
 
----
+## Active Projects
 
-## Example Project Beta
-- **Status:** Active
-- **Review Cadence:** weekly (Tuesday)
-- **Last Reviewed:** 2025-01-10
-- **Remaining Estimate:** ongoing
-- **Next Steps:**
-  - [ ] Monitor progress and address blockers
-  - [ ] Plan next sprint items
-  - [ ] Review team feedback
+| Project | Status | Review | Last Reviewed | Link |
+|---------|--------|--------|---------------|------|
+| Example Project Alpha | Active | weekly (Tuesday) | 2025-01-15 | [→](example-project-alpha/status.md) |
 
----
+## Completed Projects
 
-## Example Maintenance Project
-- **Status:** Active
-- **Review Cadence:** monthly
-- **Last Reviewed:** 2025-01-01
-- **Remaining Estimate:** ongoing (maintenance)
-- **Next Steps:**
-  - [ ] Review current system health
-  - [ ] Plan upcoming maintenance window
-  - [ ] Update documentation
+| Project | Completed | Link |
+|---------|-----------|------|
+| _(none yet)_ | | |
+
+## Team WIPs
+
+Shared collaborative projects live in `shared/<name>/` (separate git repos) and are
+referenced here as pointers.
+
+| Team | Status | Review | Last Reviewed | Link |
+|------|--------|--------|---------------|------|
+| _(none yet)_ | | | | |
+
+## Workspaces (External Portfolios)
+
+Dedicated external folders for scoped work on a portfolio of related initiatives. They
+live outside this repo (e.g. `~/development/<workspace>/`) with their own `CLAUDE.md`.
+Track them here as pointers; see CLAUDE.md → Workspaces for the full pattern.
+
+| Workspace | Location | Status | Review | Link |
+|-----------|----------|--------|--------|------|
+| _(none yet)_ | | | | |
 
 ---
 
-## Project Templates
+## Adding a New Project
 
-Copy and modify the template below for new projects:
+1. Create a folder: `projects/<project-name>/`
+2. Add `status.md` using the template below
+3. Add a row to the appropriate table above with a link to the `status.md`
+4. (Optional) Add `notes.md` for extended history and technical detail
 
-## [Project Name]
+### status.md Template
+
+```markdown
+# [Project Name]
+
 - **Status:** [Active/Paused/Completed]
-- **Review Cadence:** [daily/weekly/monthly or weekly (specific day)]
+- **Review Cadence:** [daily/weekly/monthly, or weekly (specific day), or "as needed"]
 - **Last Reviewed:** YYYY-MM-DD
 - **Remaining Estimate:** [e.g., 2 weeks, ongoing, TBD]
-- **Next Steps:**
-  - [ ] Task 1
-  - [ ] Task 2
 
-### Sub-project: [Sub-project Name]
-- **Status:** [Active/Paused/Completed]
-- **Remaining Estimate:** [e.g., 3 days]
-- **Next Steps:**
-  - [ ] Sub-task 1
+## What it is
+One or two sentences describing the project and its goal.
+
+## Next Steps
+- [ ] Task 1
+- [ ] Task 2
+
+## Recent Updates
+- YYYY-MM-DD: What changed.
+
+## Completed Tasks
+- [x] Done item
+```

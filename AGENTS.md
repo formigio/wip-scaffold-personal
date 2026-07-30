@@ -21,8 +21,10 @@ Formigio WIP (Work In Progress) is an AI-first productivity system. Users intera
 
 ### Directory Structure
 
-- **`daily/`** - Daily task files named `YYYY-MM-DD.md` with standardized format
-- **`projects/`** - Project tracking with `index.md` master list and individual project folders with `notes.md`
+- **`backlog.md`** - Master list of all pending work (source of truth for what needs to be done)
+- **`daily/`** - Daily task files named `YYYY-MM-DD.md` (what's realistically being done today)
+- **`projects/`** - Project tracking (two-tier): slim `index.md` table → per-project `status.md` (+ optional `notes.md`)
+- **`journeys/`** - Multi-step initiatives tracked as single markdown files (see Journeys section)
 - **`shared/`** - Shared WIPs for collaborative Team WIPs and personal project WIPs
 - **`team/`** - Team management files (if user manages a team):
   - `daily-logs/` - Team daily logs (e.g., `january.md`)
@@ -37,9 +39,16 @@ Each daily file follows this structure:
 ```markdown
 # Daily Tasks - [Day], Month DD, YYYY
 
-## Today's Focus
-1. High priority item 1
-2. High priority item 2
+## Today's Plan
+
+**Available Time:** X hours focus time (note meeting load)
+
+### [Project/Category] - Task Summary
+- **Remaining Estimate:** X hrs
+- **Focus/Notes:** What you're working on
+- **Challenges/Learnings:** Blockers, context
+
+---
 
 ## Tasks
 
@@ -48,29 +57,37 @@ Each daily file follows this structure:
 - [ ] Day-specific recurring tasks (auto-populated)
 
 ### Other
-- [ ] One-time tasks
+- [ ] One-time tasks pulled from backlog
 - [x] Completed tasks
 
 ## Notes
 - Meeting notes, thoughts, observations
-
-## Prioritized Task Order
-(Optional section added by planning workflow)
+- Reference: See backlog.md for deferred items
 
 ## End of Day Summary
-(Added at end of day with completed/carried forward tasks)
+(Added at end of day: what was completed, what returns to backlog)
 ```
+
+**Key principle:** Daily file = realistic commitments for today. Deferred items live in `backlog.md`.
 
 ### Project Tracking Format
 
-The `projects/index.md` file tracks all active projects with:
-- **Status:** Active/Paused/Completed
-- **Review Cadence:** daily/weekly (with specific day)/monthly
-- **Last Reviewed:** YYYY-MM-DD (used to determine if review is due)
-- **Remaining Estimate:** Time estimate or "ongoing"
-- **Next Steps:** Checkbox list of actionable items
+**Two-tier structure:**
+1. **`projects/index.md`** - Slim summary table (name, status, cadence, last reviewed, link)
+2. **`projects/<name>/status.md`** - Full details: Status, Review Cadence, Last Reviewed, Remaining Estimate, Next Steps, Recent Updates, Completed Tasks
+3. **`projects/<name>/notes.md`** - Extended notes (optional)
 
-Individual projects can have sub-projects with their own status and next steps.
+`./bin/wip review-projects` scans the individual `status.md` files to find reviews past cadence.
+
+### Backlog System
+
+**`backlog.md`** is the persistent source of truth for all pending work. It separates
+"what needs to be done" from "what I'm doing today."
+
+- **Categories:** Decisions Needed, Recurring Reviews (Behind Schedule), Team Communication, Technical Debt, Project-Specific, Low Priority / Someday, Recently Completed
+- **Morning:** Review backlog → assess time → pull realistic items into today's daily
+- **End of Day:** Incomplete items return to backlog (unless carrying to tomorrow)
+- **Key Principle:** Daily files are commitments. Backlog is the waiting room.
 
 ### Recurring Tasks System
 
@@ -109,12 +126,13 @@ The `bin/wip` bash script provides commands **for you to use**. Users interact w
 ### Daily Morning Workflow
 
 When user says "help me plan my day" or similar:
-1. Review yesterday's accomplishments and incomplete tasks using `./bin/wip review-yesterday`
-2. Check `recurring-tasks.md` to know what tasks apply today based on day of week
-3. Identify projects due for review based on cadence and last reviewed date in `projects/index.md`
-4. For Team WIPs, use `./bin/wip sync-project` to pull teammate updates
-5. Create prioritized task order considering time estimates
-6. Update daily file with focus areas and task list using `./bin/wip new-day`
+1. **Review `backlog.md` first** - the full picture of pending work (decisions, behind-schedule reviews, owed communication)
+2. Review recent days (`./bin/wip list-days 5`) to catch dropped tasks; add any found to `backlog.md`
+3. Check `recurring-tasks.md` to know what tasks apply today based on day of week
+4. Use `./bin/wip review-projects` to identify projects due (scans `status.md` files)
+5. For Team WIPs, use `./bin/wip sync-project` to pull teammate updates
+6. **Assess available time** - ask about meetings/commitments for realistic capacity
+7. **Pull realistic items from backlog into today** and create the daily file with `./bin/wip new-day`
 
 ### During the Day - Natural Language Interaction
 
@@ -131,20 +149,49 @@ When user says "help me plan my day" or similar:
 
 When user says "I'm done for the day, here's what I accomplished..." or similar:
 1. Mark completed tasks with `[x]`
-2. Add "End of Day Summary" section with:
+2. **Move incomplete items back to backlog.md** - unless explicitly carrying to tomorrow
+3. Add "End of Day Summary" section with:
    - Completed Today (with ✅)
-   - Carried Forward (incomplete tasks)
+   - Returned to Backlog (items that didn't get done)
    - Key Updates (important project notes)
-3. For Team WIPs user worked on, use `./bin/wip log-project` to update their daily log
-4. Commit changes to git with descriptive message
+4. For Team WIPs user worked on, use `./bin/wip log-project` to update their daily log
+5. Commit changes to git with descriptive message
+
+### Adding Tasks - Triage at Point of Capture
+
+When the user mentions a new task, ask **"When does this need to happen?"** before adding:
+- **Today** → today's daily file (with estimate)
+- **Specific future date** → create/update that day's daily file
+- **No specific date** → `backlog.md` under the appropriate category
+
+Skip the question if timing is already stated ("remind me tomorrow...", "add to backlog...").
 
 ### Project Review Workflow
 
 When reviewing projects:
-1. Check `projects/index.md` for projects due based on review cadence
-2. Review project next steps and status
-3. Update "Last Reviewed" date after review
-4. Add new next steps or update estimates as needed
+1. Use `./bin/wip review-projects` to see which projects are due (scans `status.md` files)
+2. Read the relevant `projects/<name>/status.md` for full details
+3. Update the "Last Reviewed" date in the `status.md` file after review
+4. Add new next steps or update estimates; update the `index.md` table if status/cadence changed
+
+## Journeys (Multi-Step Initiatives)
+
+A **Journey** tracks a multi-step initiative where the path isn't fully clear upfront
+(learning, exploration, iterative progress). Journeys live as single markdown files in
+`journeys/`. Copy `journeys/_template.md` to `journeys/YYYY-MM-DD-short-name.md`.
+
+Structure: **Desired Outcome**, **Why This Matters**, **Goal Posts** (milestones as states),
+**Current Position**, **Blockers & Uncertainties**, **Journal** (dated entries), **Next Step**
+(the one next action - the anti-stuck device). Use Journeys for things with a clear "done"
+state; use Projects for ongoing work needing daily-review integration.
+
+## Workspaces (External Portfolios)
+
+A **Workspace** is a dedicated external folder (e.g. `~/development/<workspace>/`) for scoped
+work on a portfolio of related initiatives - it lives outside this repo with its own
+`CLAUDE.md`/`AGENTS.md` for domain context, `notes/` for tracked docs, and `local/` for
+untracked working files. Reference workspaces from `projects/index.md` as pointers with a
+location and status. Use a workspace when work spans multiple repos or needs specialized context.
 
 ## Key Concepts
 
@@ -178,23 +225,28 @@ This repository is meant to be committed frequently:
 
 When helping the user:
 
-1. **Read yesterday's daily file** to understand context before planning today
-2. **Check recurring-tasks.md** to know what tasks apply today based on day of week
-3. **Review projects/index.md** to identify projects needing attention
-4. **For Team WIPs**, sync first to see teammate updates
-5. **Follow the daily file format** consistently when creating or modifying files
-6. **Update "Last Reviewed" dates** in projects/index.md after project reviews
-7. **Use ISO date format** (YYYY-MM-DD) everywhere
-8. **Preserve the prioritized task order** format when adding to daily files
-9. **Mark tasks completed** with `[x]` when user confirms completion
-10. **Use CLI tools proactively** - you manage the system, not the user
-11. **Be conversational** - respond naturally, explain what you're doing
-12. **Auto-commit** - handle git commits automatically at appropriate times
+1. **NEVER drop tasks** - every incomplete task must complete, go to backlog.md, or be explicitly addressed. Team Requests must NEVER be dropped.
+2. **Backlog is the source of truth** - all pending work lives in backlog.md; daily files are realistic commitments only
+3. **Morning: review backlog first**; **End of day: return incomplete items to backlog**
+4. **Create future daily files** when the user schedules a task for a future date
+5. **Check recurring-tasks.md** to know what tasks apply today based on day of week
+6. **Use `./bin/wip review-projects`** to identify projects needing attention (scans `status.md` files)
+7. **For Team WIPs**, sync first to see teammate updates
+8. **Follow the daily file format** with estimates when creating or modifying files
+9. **Update "Last Reviewed" dates** in `projects/<name>/status.md` after project reviews
+10. **Use ISO date format** (YYYY-MM-DD) everywhere
+11. **Mark tasks completed** with `[x]` when user confirms completion
+12. **Use CLI tools proactively** - you manage the system, not the user
+13. **Be conversational** - respond naturally, explain what you're doing
+14. **Auto-commit** - handle git commits automatically at appropriate times
 
 ## Natural Language Interaction Examples
 
 **User:** "Help me plan my day"
-**You:** [Use morning workflow, check yesterday, recurring tasks, projects, sync Team WIPs, create prioritized plan]
+**You:** [Use morning workflow: review backlog first, catch dropped tasks, check recurring tasks and project reviews, sync Team WIPs, assess time, pull realistic items from backlog into today]
+
+**User:** "I need to review the security audit findings"
+**You:** "When does this need to happen - today, a specific future date, or add to backlog for when you have time?"
 
 **User:** "I finished the report"
 **You:** [Mark task complete, ask if there are any notes to add]
@@ -211,9 +263,10 @@ When helping the user:
 ## Custom Slash Commands Available
 
 Use these shortcuts for common workflows:
-- `/prompts:review-day` - Start daily planning workflow
-- `/prompts:end-day` - Create end-of-day summary
-- `/prompts:project-update` - Update project status
+- `/prompts:review-day` - Start daily planning workflow (backlog-first)
+- `/prompts:add-task` - Add a task with triage (today / future date / backlog)
+- `/prompts:end-day` - Create end-of-day summary (returns incomplete items to backlog)
+- `/prompts:project-update` - Update project status (two-tier status.md)
 - `/prompts:weekly-review` - Generate weekly review
 
 ## Remember

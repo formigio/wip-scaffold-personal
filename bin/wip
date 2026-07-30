@@ -128,6 +128,100 @@ get_day_of_month() {
     fi
 }
 
+# Calculate days between two YYYY-MM-DD dates (later - earlier)
+# Usage: calc_days_diff <earlier_date> [<later_date_default_today>]
+calc_days_diff() {
+    local earlier="$1"
+    local later="${2:-$(get_date)}"
+    local days_diff=0
+
+    if date -d "2025-01-01" &>/dev/null; then
+        # GNU date (Linux)
+        local later_epoch=$(date -d "$later 00:00:00" +%s)
+        local earlier_epoch=$(date -d "$earlier 00:00:00" +%s)
+        days_diff=$(( (later_epoch - earlier_epoch) / 86400 ))
+    else
+        # BSD date (macOS)
+        local later_epoch=$(date -j -f "%Y-%m-%d" "$later" +%s)
+        local earlier_epoch=$(date -j -f "%Y-%m-%d" "$earlier" +%s)
+        days_diff=$(( (later_epoch - earlier_epoch) / 86400 ))
+    fi
+
+    echo "$days_diff"
+}
+
+# Get list of projects whose review is past cadence as of target_date.
+# Scans per-project status.md files (two-tier project structure).
+# Day-of-week scheduled reviews (e.g. "weekly (Tuesday)") are SKIPPED when
+# the target_date matches the scheduled day — those live in the recurring
+# tasks list for that day. They are FLAGGED when >=7 days behind otherwise.
+# Cadences of "as needed", "archived", or "none" are ignored.
+# Output: one "- [ ] Review <name> (<n> days behind, cadence: <c>)" line per
+# overdue project, sorted by days-behind descending.
+get_overdue_reviews() {
+    local target_date="${1:-$(get_date)}"
+    local target_day=$(get_day_of_week "$target_date")
+    local lines=""
+
+    for status_file in "$PROJECTS_DIR"/*/status.md; do
+        [ -f "$status_file" ] || continue
+
+        local project_name="" cadence="" last_reviewed=""
+        while IFS= read -r line; do
+            line="${line%$'\r'}"
+            if [[ "$line" =~ ^#[[:space:]]+(.+)$ ]] && [ -z "$project_name" ]; then
+                project_name="${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^-[[:space:]]+\*\*Review\ Cadence:\*\*[[:space:]]+(.+)$ ]]; then
+                cadence="${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^-[[:space:]]+\*\*Last\ Reviewed:\*\*[[:space:]]+(.+)$ ]]; then
+                last_reviewed="${BASH_REMATCH[1]}"
+            fi
+        done < "$status_file"
+
+        [ -z "$project_name" ] || [ -z "$cadence" ] || [ -z "$last_reviewed" ] && continue
+        [[ "$cadence" == "as needed" ]] && continue
+        [[ "$cadence" == "archived" ]] && continue
+        [[ "$cadence" == "none" ]] && continue
+        [[ "$cadence" =~ ^none\  ]] && continue
+
+        # Extract bare YYYY-MM-DD from Last Reviewed (may have trailing notes)
+        local clean_date=$(echo "$last_reviewed" | grep -oE "[0-9]{4}-[0-9]{2}-[0-9]{2}" | head -1)
+        [ -z "$clean_date" ] && continue
+
+        # Normalize cadence: strip any parenthetical modifier and use the base
+        # cadence for threshold. For weekly (Day), skip when target_date matches
+        # the scheduled day (it appears in today's recurring list instead).
+        local effective_cadence="$cadence"
+        if [[ "$cadence" =~ ^([a-z]+)[[:space:]]\((.+)\)$ ]]; then
+            local base="${BASH_REMATCH[1]}"
+            local modifier="${BASH_REMATCH[2]}"
+            if [[ "$base" == "weekly" ]] && [[ "$modifier" == "$target_day" ]]; then
+                continue
+            fi
+            effective_cadence="$base"
+        fi
+
+        local threshold=0
+        case "$effective_cadence" in
+            daily) threshold=1 ;;
+            weekly) threshold=7 ;;
+            monthly) threshold=30 ;;
+            *) continue ;;
+        esac
+
+        local days_diff=$(calc_days_diff "$clean_date" "$target_date")
+        if [ "$days_diff" -ge "$threshold" ]; then
+            # Pad days_diff with leading zeros for sort, then strip after
+            lines="${lines}$(printf '%05d' "$days_diff")|- [ ] Review ${project_name} (${days_diff} days behind, cadence: ${cadence})"$'\n'
+        fi
+    done
+
+    # Sort by days_diff descending, then strip the sort prefix
+    if [ -n "$lines" ]; then
+        echo "$lines" | sort -r | sed 's/^[0-9]*|//' | grep -v '^$'
+    fi
+}
+
 # Get recurring tasks for a specific day
 get_recurring_tasks() {
     local target_date="${1:-}"
@@ -201,24 +295,36 @@ cmd_new_day() {
 
     local readable_date=$(get_readable_date "$target_date")
     local recurring_tasks=$(get_recurring_tasks "$target_date")
+    local overdue_reviews=$(get_overdue_reviews "$target_date")
 
-    # Create the daily file with recurring tasks
+    # Build the Project Reviews Due section only if there is something to show
+    local reviews_section=""
+    if [ -n "$overdue_reviews" ]; then
+        reviews_section="
+### Project Reviews Due (cadence-behind)
+$overdue_reviews
+"
+    fi
+
+    # Create the daily file with recurring tasks + overdue reviews
     cat > "$today_file" << EOF
 # Daily Tasks - $readable_date
 
-## Today's Focus
--
--
+## Today's Plan
+
+**Available Time:** _hrs focus time (note meeting load)_
+
+<!-- Pull realistic items from backlog.md based on available time. -->
 
 ## Tasks
 
 ### Recurring
-$recurring_tasks
+$recurring_tasks${reviews_section}
 ### Other
 - [ ]
 
 ## Notes
--
+- See backlog.md for deferred items
 EOF
 
     log_success "Created today's file: $today_file"
@@ -227,6 +333,12 @@ EOF
     local task_count=$(echo "$recurring_tasks" | grep -c "^\- \[" || echo "0")
     if [ "$task_count" -gt 0 ]; then
         log_info "Added $task_count recurring task(s)"
+    fi
+
+    # Count and display overdue reviews
+    if [ -n "$overdue_reviews" ]; then
+        local review_count=$(echo "$overdue_reviews" | grep -c "^\- \[" || echo "0")
+        log_warning "$review_count project review(s) past cadence — surfaced in 'Project Reviews Due' section"
     fi
 }
 
@@ -276,113 +388,22 @@ cmd_review_yesterday() {
 
 # Command: review-projects
 cmd_review_projects() {
-    local today=$(get_date)
-    local projects_file="$PROJECTS_DIR/index.md"
-
-    if [ ! -f "$projects_file" ]; then
-        log_error "Projects index not found"
-        exit 1
-    fi
-
     log_info "Checking projects due for review..."
     echo ""
 
-    # Function to check if current project is due
-    check_project_due() {
-        if [ -n "$current_project" ] && [ -n "$current_cadence" ] && [ -n "$current_last_reviewed" ]; then
-            # Skip day-specific reviews (handled by recurring tasks)
-            if [[ "$current_cadence" =~ weekly\ \( ]]; then
-                return
-            fi
+    local overdue=$(get_overdue_reviews)
 
-            # Calculate days difference properly using date command at midnight
-            # Linux: date -d supports arithmetic; macOS: use different approach
-            local days_diff=0
-            if date -d "2025-01-01" &>/dev/null; then
-                # GNU date (Linux)
-                local today_epoch=$(date -d "$today 00:00:00" +%s)
-                local last_epoch=$(date -d "$current_last_reviewed 00:00:00" +%s)
-                days_diff=$(( (today_epoch - last_epoch) / 86400 ))
-            else
-                # BSD date (macOS) - calculate using day-of-year
-                local today_year=$(echo "$today" | cut -d'-' -f1)
-                local last_year=$(echo "$current_last_reviewed" | cut -d'-' -f1)
-
-                if [ "$today_year" = "$last_year" ]; then
-                    # Same year - simple day-of-year subtraction
-                    local today_doy=$(date -j -f "%Y-%m-%d" "$today" +%j | sed 's/^0*//')
-                    local last_doy=$(date -j -f "%Y-%m-%d" "$current_last_reviewed" +%j | sed 's/^0*//')
-                    days_diff=$((today_doy - last_doy))
-                else
-                    # Different years - use epoch time but normalize to avoid time issues
-                    # This is approximate but good enough for review checks
-                    local today_epoch=$(date -j -f "%Y-%m-%d" "$today" +%s)
-                    local last_epoch=$(date -j -f "%Y-%m-%d" "$current_last_reviewed" +%s)
-                    days_diff=$(( (today_epoch - last_epoch) / 86400 ))
-                fi
-            fi
-
-            local due=false
-            case "$current_cadence" in
-                daily)
-                    [ $days_diff -ge 1 ] && due=true
-                    ;;
-                weekly)
-                    [ $days_diff -ge 7 ] && due=true
-                    ;;
-                monthly)
-                    [ $days_diff -ge 30 ] && due=true
-                    ;;
-            esac
-
-            if [ "$due" = true ]; then
-                echo -e "${YELLOW}○${NC} $current_project (Last reviewed: $current_last_reviewed, Cadence: $current_cadence)"
-                found_any=true
-            fi
-        fi
-    }
-
-    # Parse and display projects due for review
-    local found_any=false
-    local current_project=""
-    local current_cadence=""
-    local current_last_reviewed=""
-
-    while IFS= read -r line; do
-        # Stop parsing when we hit the templates section
-        if [[ "$line" =~ ^##[[:space:]]+Project[[:space:]]+Templates ]]; then
-            # Check last project before breaking
-            check_project_due
-            break
-        fi
-
-        if [[ "$line" =~ ^##[[:space:]]+(.+)$ ]]; then
-            # Check previous project before moving to next
-            check_project_due
-
-            # Start new project
-            current_project="${BASH_REMATCH[1]}"
-            current_cadence=""
-            current_last_reviewed=""
-        elif [[ "$line" =~ ^###[[:space:]]+(.+)$ ]]; then
-            # Check main project before entering sub-project
-            check_project_due
-            # Clear review fields for sub-projects (they don't have their own review cadence)
-            current_cadence=""
-            current_last_reviewed=""
-        elif [[ "$line" =~ ^-[[:space:]]+\*\*Review\ Cadence:\*\*[[:space:]]+(.+)$ ]]; then
-            current_cadence="${BASH_REMATCH[1]}"
-        elif [[ "$line" =~ ^-[[:space:]]+\*\*Last\ Reviewed:\*\*[[:space:]]+(.+)$ ]]; then
-            current_last_reviewed="${BASH_REMATCH[1]}"
-        fi
-    done < "$projects_file"
-
-    # Check final project
-    check_project_due
-
-    if [ "$found_any" = false ]; then
+    if [ -z "$overdue" ]; then
         log_success "All projects are up to date!"
+        return
     fi
+
+    # Reformat the checklist-style output for terminal display
+    echo "$overdue" | while IFS= read -r line; do
+        # Strip "- [ ] Review " prefix and reformat for terminal
+        local display=$(echo "$line" | sed 's/^- \[ \] Review //')
+        echo -e "${YELLOW}○${NC} $display"
+    done
 }
 
 # Command: weekly-summary

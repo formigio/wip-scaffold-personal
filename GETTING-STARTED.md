@@ -168,9 +168,11 @@ You don't need to memorize this - Claude knows it. But for reference:
 
 ```
 my-wip/
-├── daily/               # Claude creates these daily
+├── backlog.md           # All pending work (the "waiting room")
+├── daily/               # Claude creates these daily (today's commitments)
 ├── shared/              # Team WIPs Claude manages
-├── projects/index.md    # Claude tracks your projects
+├── projects/            # index.md table → per-project status.md + notes.md
+├── journeys/            # Multi-step initiatives (one file each)
 ├── recurring-tasks.md   # Your routine (you defined with Claude)
 └── CLAUDE.md           # Teaches Claude how this works
 ```
@@ -192,7 +194,8 @@ When you ask Claude to do things, it uses the right commands automatically.
 
 Specialized workflows you can invoke:
 
-- **`/review-day`** - Complete morning planning workflow
+- **`/review-day`** - Complete morning planning workflow (backlog-first)
+- **`/add-task`** - Add a task with triage (today / future date / backlog)
 - **`/prioritize`** - Analyze and prioritize your tasks
 - **`/plan-day`** - Create detailed time-blocked schedule
 - **`/note-organizer`** - Capture and structure meeting notes
